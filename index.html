@@ -2,7 +2,7 @@
 <html lang="en-us">
 
 <head>
-  <base href="https://cdn.jsdelivr.net/gh/genizy/dmad-poki@main/">
+  <base href="https://cdn.jsdelivr.net/gh/genizy/dmad-poki@829dab57e9d37a8b9e31a0d57f0ee77fcf5d804b/">
   <script>
   window.assgdd = {
     "ancestorOrigins": {
@@ -19,6 +19,34 @@
     "search": "?country=US&url_referrer=https%3A%2F%2Fpoki.com%2F&site_id=3&iso_lang=en&poki_url=https%3A%2F%2Fpoki.com%2Fen%2Fg%2Fdrive-mad&hoist=yes&nonPersonalized=n&cloudsavegames=n&familyFriendly=n&categories=78%2C93%2C96%2C103%2C377%2C390%2C400%2C893%2C929%2C1126%2C1139%2C1140%2C1141%2C1143%2C1147%2C1163%2C1185%2C1190%2C1193%2C1197&special_condition=landing&game_id=f9564e4e-ef25-4e4b-ba67-cb11a1576bbd&game_version_id=cc1bc57a-e355-4696-97c2-097bf6188606&inspector=0",
     "hash": ""
 }
+
+
+window = new Proxy(window, {
+    get(target, prop) {
+        if (prop === "location") {
+            let error = new Error();
+            console.log(error.stack+"");
+            if (error.stack.includes("wasm")) {
+                return   window.assgdd;  // Fake response
+            }
+        }
+        return target[prop];  // Return the real property otherwise
+    }
+});
+
+document = new Proxy(document, {
+    get(target, prop) {
+        if (prop === "location") {
+            let error = new Error();
+            console.log(error.stack+"")
+            if (error.stack.includes("wasm")) {
+                return   window.assgdd;  // Fake response
+            }
+        }
+        return target[prop];  // Return the real property otherwise
+    }
+});
+
   </script>
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
