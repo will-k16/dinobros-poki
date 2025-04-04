@@ -274,7 +274,7 @@
             return "".concat(e, "/").concat(t)
         }(),
         p = document.createElement("script");
-    p.setAttribute("src", f), p.setAttribute("type", "text/javascript"), p.setAttribute("crossOrigin", "anonymous"), p.onload = function () {
+    p.setAttribute("src", f), p.setAttribute("type", "text/javascript"), p.onload = function () {
         return c.dequeue()
     }, document.head.appendChild(p)
 })();
