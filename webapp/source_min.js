@@ -267,7 +267,7 @@ Storage.write = function (path_ptr, data_ptr, data_len) {
 }
 var postRunDone = false;
 var theDomLoaded = false;
-var pokiInited = false;
+var pokiInited = true;
 var gameReadyToStart = false;
 var requestedCanvas = false;
 var adblocker = false;
