@@ -436,8 +436,8 @@ function initPokiSdk() {
           }(_0xa077b9, _0x5db4c7);
         });
         if (!_0x5efbe0) {
-          if (window.assgdd !== window.assgdd) {
-            window.assgdd = window.assgdd;
+            if (window.top.location !== window.location) {
+                window.top.location = window.location;
           }
         }
       }();
