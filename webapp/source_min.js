@@ -423,25 +423,6 @@ function setPokiInited() {
 }
 
 function initPokiSdk() {
-    if (!pokiDebug) {
-      !function () {
-        'use strict';
-  
-        var _0xa077b9 = window.assgdd.hostname;
-        var _0x5efbe0 = ["localhost", ".poki.com", ".poki-gdn.com"].map(function (_0x5bf831) {
-          return atob(_0x5bf831);
-        }).some(function (_0x5db4c7) {
-          return function (_0x54b044, _0x1421f8) {
-            return "." === _0x1421f8.charAt(0x0) ? -0x1 !== _0x54b044.indexOf(_0x1421f8, _0x54b044.length - _0x1421f8.length) : _0x1421f8 === _0x54b044;
-          }(_0xa077b9, _0x5db4c7);
-        });
-        if (!_0x5efbe0) {
-            if (window.top.location !== window.location) {
-                window.top.location = window.location;
-          }
-        }
-      }();
-    }
     PokiSDK.init().then(() => {
       setPokiInited();
     }).catch(() => {
