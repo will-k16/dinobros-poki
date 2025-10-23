@@ -1,113 +1,142 @@
 (() => {
-    var e = function (e) {
-        var n = RegExp("[?&]" + e + "=([^&]*)").exec(window.location.search);
-        return n && decodeURIComponent(n[1].replace(/\+/g, " "));
-      },
-      n = "kids" === e("tag"),
-      o = new ((function () {
-        function e() {
-          var e = this;
-          (this.queue = []),
-            (this.init = function (n) {
-              return (
-                void 0 === n && (n = {}),
-                new Promise(function (o, t) {
-                  e.enqueue("init", n, o, t);
-                })
-              );
-            }),
-            (this.rewardedBreak = function () {
-              return new Promise(function (e) {
-                e(!1);
-              });
-            }),
-            (this.noArguments = function (n) {
-              return function () {
-                e.enqueue(n);
-              };
-            }),
-            (this.oneArgument = function (n) {
-              return function (o) {
-                e.enqueue(n, o);
-              };
-            }),
-            (this.handleAutoResolvePromise = function () {
-              return new Promise(function (e) {
-                e();
-              });
-            }),
-            (this.handleAutoResolvePromiseObj = function () {
-              return new Promise(function (e) {
-                e();
-              });
-            }),
-            (this.throwNotLoaded = function () {
-              console.debug("PokiSDK is not loaded yet. Not all methods are available.");
-            });
+    "use strict";
+    const e = e => {
+            const t = RegExp(`[?&]${e}=([^&]*)`).exec(window.location.search);
+            return t && decodeURIComponent(t[1].replace(/\+/g, " "))
+        },
+        t = "kids" === e("tag"),
+        o = !!window.adBridge,
+        i = "yes" === e("hoist") || "yes" === e("gdhoist");
+    const n = new class {
+        #e = [];
+        enqueue(e, o, i, n) {
+            const r = {
+                fn: e,
+                args: o || [],
+                resolveFn: i,
+                rejectFn: n
+            };
+            t ? i && i(!0) : this.#e.push(r)
         }
-        return (
-          (e.prototype.enqueue = function (e, o, t, i) {
-            var r = { fn: e, options: o, resolveFn: t, rejectFn: i };
-            n ? i && i() : this.queue.push(r);
-          }),
-          (e.prototype.dequeue = function () {
-            for (
-              var e = function () {
-                  var e = n.queue.shift(),
-                    o = e,
-                    t = o.fn,
-                    i = o.options;
-                  "function" == typeof window.PokiSDK[t]
-                    ? (null == e ? void 0 : e.resolveFn) || (null == e ? void 0 : e.rejectFn)
-                      ? window.PokiSDK[t](i)
-                          .then(function () {
-                            for (var n = [], o = 0; o < arguments.length; o++) n[o] = arguments[o];
-                            "function" == typeof e.resolveFn && e.resolveFn.apply(e, n);
-                          })
-                          .catch(function () {
-                            for (var n = [], o = 0; o < arguments.length; o++) n[o] = arguments[o];
-                            "function" == typeof e.rejectFn && e.rejectFn.apply(e, n);
-                          })
-                      : void 0 !== (null == e ? void 0 : e.fn) && window.PokiSDK[t](i)
-                    : console.error("Cannot execute " + e.fn);
+        dequeue() {
+            for (; this.#e.length > 0;) {
+                const e = this.#e.shift(),
+                    {
+                        fn: t,
+                        args: o
+                    } = e;
+                if ("function" == typeof window.PokiSDK[t])
+                    if (e?.resolveFn || e?.rejectFn) {
+                        const i = "init" === t;
+                        if (window.PokiSDK[t](...o).catch(((...t) => {
+                                "function" == typeof e.rejectFn && e.rejectFn(...t), i && setTimeout((() => {
+                                    this.dequeue()
+                                }), 0)
+                            })).then(((...t) => {
+                                "function" == typeof e.resolveFn && e.resolveFn(...t), i && setTimeout((() => {
+                                    this.dequeue()
+                                }), 0)
+                            })), i) break
+                    } else window.PokiSDK[t](...o);
+                else console.error(`%cPOKI:%c cannot execute ${t}`, "font-weight: bold", "")
+            }
+        }
+        init = (e = {}, t = {}) => new Promise(((o, i) => {
+            this.enqueue("init", [e, t], o, i)
+        }));
+        rewardedBreak = () => new Promise((e => {
+            e(!1)
+        }));
+        commercialBreak = e => new Promise(((t, o) => {
+            this.enqueue("commercialBreak", [e], t, o)
+        }));
+        displayAd = (e, t, o, i) => {
+            i && i(!0), o && o()
+        };
+        withArguments = e => (...t) => {
+            this.enqueue(e, t)
+        };
+        withPromise = e => () => new Promise(((t, o) => {
+            this.enqueue(e, [], t, o)
+        }));
+        handleAutoResolvePromise = () => new Promise((e => {
+            e()
+        }));
+        throwNotLoaded = () => {
+            console.debug("PokiSDK is not loaded yet. Not all methods are available.")
+        };
+        doNothing = () => {}
+    };
+    if (window.PokiSDK = {
+            init: n.init,
+            initWithVideoHB: n.init,
+            commercialBreak: n.commercialBreak,
+            rewardedBreak: n.rewardedBreak,
+            displayAd: n.displayAd,
+            destroyAd: n.doNothing,
+            getLeaderboard: n.handleAutoResolvePromise,
+            shareableURL: () => new Promise(((e, t) => {
+                t()
+            })),
+            getURLParam: t => e(`gd${t}`) || e(t) || "",
+            getLanguage: () => navigator.language.toLowerCase().split("-")[0],
+            isAdBlocked: () => {},
+            getUser: n.withPromise("getUser"),
+            getToken: n.withPromise("getToken"),
+            login: n.withPromise("login")
+        }, ["captureError", "customEvent", "gameInteractive", "gameLoadingFinished", "gameLoadingProgress", "gameLoadingStart", "gameplayStart", "gameplayStop", "happyTime", "logError", "muteAd", "roundEnd", "roundStart", "sendHighscore", "setDebug", "setDebugTouchOverlayController", "setLogging", "setPlayerAge", "setPlaytestCanvas", "enableEventTracking", "playtestSetCanvas", "playtestCaptureHtmlOnce", "playtestCaptureHtmlForce", "playtestCaptureHtmlOn", "playtestCaptureHtmlOff"].forEach((e => {
+            window.PokiSDK[e] = n.withArguments(e)
+        })), !o && !t) try {
+        let t = localStorage.getItem("poki_events_user_id");
+        t || (t = crypto.randomUUID(), "GB" !== e("country") && localStorage.setItem("poki_events_user_id", t));
+        const o = crypto.randomUUID(),
+            i = e("game_id"),
+            n = e("game_version_id"),
+            r = "1" === localStorage.getItem("poki_pbf");
+        window.PokiSDK.measure = (e, a, s) => {
+            e = `${e}`, a = void 0 === a ? "" : `${a}`, s = void 0 === s ? "" : `${s}`, window.pokiMeasureBuildin = !0, window.parent.postMessage({
+                type: "pokiMessageEvent",
+                content: {
+                    event: "pokiTrackingMeasure",
+                    data: {
+                        category: e,
+                        action: a,
+                        label: s
+                    }
+                }
+            }, "*"), i && n && fetch("https://t.poki.io/game-event", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain"
                 },
-                n = this;
-              this.queue.length > 0;
-  
-            )
-              e();
-          }),
-          e
-        );
-      })())();
-    (window.PokiSDK = { init: o.init, initWithVideoHB: o.init, customEvent: o.throwNotLoaded, destroyAd: o.throwNotLoaded, getLeaderboard: o.handleAutoResolvePromiseObj }),
-      ["disableProgrammatic", "gameLoadingStart", "gameLoadingFinished", "gameInteractive", "roundStart", "roundEnd", "muteAd"].forEach(function (e) {
-        window.PokiSDK[e] = o.noArguments(e);
-      }),
-      [
-        "setDebug",
-        "gameplayStart",
-        "gameplayStop",
-        "gameLoadingProgress",
-        "happyTime",
-        "setPlayerAge",
-        "togglePlayerAdvertisingConsent",
-        "toggleNonPersonalized",
-        "setConsentString",
-        "logError",
-        "sendHighscore",
-        "setDebugTouchOverlayController",
-      ].forEach(function (e) {
-        window.PokiSDK[e] = o.oneArgument(e);
-      });
-    var t,
-      i = ((t = window.pokiSDKVersion) || (t = e("ab") || "v2.234.2"), "poki-sdk-" + (n ? "kids" : "core") + "-" + t + ".js"),
-      r = document.createElement("script");
-    r.setAttribute("src", i),
-      r.setAttribute("type", "text/javascript"),
-      r.setAttribute("crossOrigin", "anonymous"),
-      (r.onload = function () {
-        return o.dequeue();
-      }),
-      document.head.appendChild(r);
-  })();
+                body: JSON.stringify({
+                    category: e,
+                    action: a,
+                    label: s,
+                    p4d_game_id: i,
+                    p4d_version_id: n,
+                    time_on_page: Math.floor(performance.now()),
+                    user_id: t,
+                    user_new: !r,
+                    gameplay_id: o
+                }),
+                mode: "no-cors",
+                keepalive: !0,
+                credentials: "omit"
+            }).catch((e => {
+                console.warn("%cPOKI:%c failed to measure", "font-weight: bold", "", e)
+            }))
+        }, window.PokiSDK.measure("game", "loading", "start"), window.pokiMeasureBuildin = !1
+    } catch (e) {
+        console.error(e), window.PokiSDK.measure = () => {}
+    }
+    const r = (() => {
+            const n = window.pokiSDKVersion || e("ab") || "f28c2657cb1b4394dc39366cb5c5f54ab14f1002";
+            let r = `poki-sdk-core-${n}.js`;
+            t && (r = `poki-sdk-kids-${n}.js`), o && (r = `poki-sdk-playground-${n}.js`), i && (r = `poki-sdk-hoist-${n}.js`);
+            new URL(document.currentScript.src);
+            return `https://game-cdn.poki.com/scripts/${n}/${r}`
+        })(),
+        a = document.createElement("script");
+    a.setAttribute("src", r), a.setAttribute("type", "text/javascript"), a.setAttribute("crossOrigin", "anonymous"), a.onload = () => n.dequeue(), document.head.appendChild(a)
+})();
