@@ -1,5253 +1,5095 @@
 (() => {
-  var e = {
-      564: (e, t, i) => {
-        var n, r, a;
-        !(function (i, o) {
-          if (i) {
-            var s = {},
-              d = i.TraceKit,
-              A = [].slice,
-              c = "?",
-              l = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/;
-            (s.noConflict = function () {
-              return (i.TraceKit = d), s;
-            }),
-              (s.wrap = function (e) {
-                return function () {
-                  try {
-                    return e.apply(this, arguments);
-                  } catch (e) {
-                    throw (s.report(e), e);
-                  }
-                };
-              }),
-              (s.report = (function () {
-                var e,
-                  t,
-                  n,
-                  r,
-                  a = [],
-                  o = null,
-                  d = null;
-
-                function A(e, t, i) {
-                  var n = null;
-                  if (!t || s.collectWindowErrors) {
-                    for (var r in a)
-                      if (p(a, r))
-                        try {
-                          a[r](e, t, i);
-                        } catch (e) {
-                          n = e;
-                        }
-                    if (n) throw n;
-                  }
-                }
-
-                function c(t, i, n, r, a) {
-                  if (d) s.computeStackTrace.augmentStackTraceWithInitialElement(d, i, n, t), h();
-                  else if (a) A(s.computeStackTrace(a), !0, a);
-                  else {
-                    var o,
-                      c = {
-                        url: i,
-                        line: n,
-                        column: r,
-                      },
-                      p = t;
-                    if ("[object String]" === {}.toString.call(t)) {
-                      var u = t.match(l);
-                      u && ((o = u[1]), (p = u[2]));
-                    }
-                    (c.func = s.computeStackTrace.guessFunctionName(c.url, c.line)),
-                      (c.context = s.computeStackTrace.gatherContext(c.url, c.line)),
-                      A(
-                        {
-                          name: o,
-                          message: p,
-                          mode: "onerror",
-                          stack: [c],
-                        },
-                        !0,
-                        null
-                      );
-                  }
-                  return !!e && e.apply(this, arguments);
-                }
-
-                function u(e) {
-                  A(s.computeStackTrace(e.reason), !0, e.reason);
-                }
-
-                function h() {
-                  var e = d,
-                    t = o;
-                  (d = null), (o = null), A(e, !1, t);
-                }
-
-                function m(e) {
-                  if (d) {
-                    if (o === e) return;
-                    h();
-                  }
-                  var t = s.computeStackTrace(e);
-                  throw (
-                    ((d = t),
-                    (o = e),
-                    setTimeout(
-                      function () {
-                        o === e && h();
-                      },
-                      t.incomplete ? 2e3 : 0
-                    ),
-                    e)
-                  );
-                }
-                return (
-                  (m.subscribe = function (o) {
-                    !(function () {
-                      if (!0 === t) return;
-                      (e = i.onerror), (i.onerror = c), (t = !0);
-                    })(),
-                      (function () {
-                        if (!0 === r) return;
-                        (n = i.onunhandledrejection), (i.onunhandledrejection = u), (r = !0);
-                      })(),
-                      a.push(o);
-                  }),
-                  (m.unsubscribe = function (o) {
-                    for (var s = a.length - 1; s >= 0; --s) a[s] === o && a.splice(s, 1);
-                    0 === a.length && (t && ((i.onerror = e), (t = !1)), r && ((i.onunhandledrejection = n), (r = !1)));
-                  }),
-                  m
-                );
-              })()),
-              (s.computeStackTrace = (function () {
-                var e = !1,
-                  t = {};
-
-                function n(e) {
-                  if ("string" != typeof e) return [];
-                  if (!p(t, e)) {
-                    var n = "",
-                      r = "";
-                    try {
-                      r = i.document.domain;
-                    } catch (e) {}
-                    var a = /(.*)\:\/\/([^:\/]+)([:\d]*)\/{0,1}([\s\S]*)/.exec(e);
-                    a &&
-                      a[2] === r &&
-                      (n = (function (e) {
-                        if (!s.remoteFetching) return "";
-                        try {
-                          var t = (function () {
-                            try {
-                              return new i.XMLHttpRequest();
-                            } catch (e) {
-                              return new i.ActiveXObject("Microsoft.XMLHTTP");
-                            }
-                          })();
-                          return t.open("GET", e, !1), t.send(""), t.responseText;
-                        } catch (e) {
-                          return "";
-                        }
-                      })(e)),
-                      (t[e] = n ? n.split("\n") : []);
-                  }
-                  return t[e];
-                }
-
-                function r(e, t) {
-                  var i,
-                    r = /function ([^(]*)\(([^)]*)\)/,
-                    a = /['"]?([0-9A-Za-z$_]+)['"]?\s*[:=]\s*(function|eval|new Function)/,
-                    o = "",
-                    s = n(e);
-                  if (!s.length) return c;
-                  for (var d = 0; d < 10; ++d)
-                    if (!u((o = s[t - d] + o))) {
-                      if ((i = a.exec(o))) return i[1];
-                      if ((i = r.exec(o))) return i[1];
-                    }
-                  return c;
-                }
-
-                function a(e, t) {
-                  var i = n(e);
-                  if (!i.length) return null;
-                  var r = [],
-                    a = Math.floor(s.linesOfContext / 2),
-                    o = a + (s.linesOfContext % 2),
-                    d = Math.max(0, t - a - 1),
-                    A = Math.min(i.length, t + o - 1);
-                  t -= 1;
-                  for (var c = d; c < A; ++c) u(i[c]) || r.push(i[c]);
-                  return r.length > 0 ? r : null;
-                }
-
-                function o(e) {
-                  return e.replace(/[\-\[\]{}()*+?.,\\\^$|#]/g, "\\$&");
-                }
-
-                function d(e) {
-                  return o(e).replace("<", "(?:<|&lt;)").replace(">", "(?:>|&gt;)").replace("&", "(?:&|&amp;)").replace('"', '(?:"|&quot;)').replace(/\s+/g, "\\s+");
-                }
-
-                function A(e, t) {
-                  for (var i, r, a = 0, o = t.length; a < o; ++a)
-                    if ((i = n(t[a])).length && ((i = i.join("\n")), (r = e.exec(i))))
-                      return {
-                        url: t[a],
-                        line: i.substring(0, r.index).split("\n").length,
-                        column: r.index - i.lastIndexOf("\n", r.index) - 1,
-                      };
-                  return null;
-                }
-
-                function l(e, t, i) {
-                  var r,
-                    a = n(t),
-                    s = new RegExp("\\b" + o(e) + "\\b");
-                  return (i -= 1), a && a.length > i && (r = s.exec(a[i])) ? r.index : null;
-                }
-
-                function h(e) {
-                  if (!u(i && i.document)) {
-                    for (var t, n, r, a, s = [i.location.href], c = i.document.getElementsByTagName("script"), l = "" + e, p = 0; p < c.length; ++p) {
-                      var h = c[p];
-                      h.src && s.push(h.src);
-                    }
-                    if ((r = /^function(?:\s+([\w$]+))?\s*\(([\w\s,]*)\)\s*\{\s*(\S[\s\S]*\S)\s*\}\s*$/.exec(l))) {
-                      var m = r[1] ? "\\s+" + r[1] : "",
-                        g = r[2].split(",").join("\\s*,\\s*");
-                      (t = o(r[3]).replace(/;$/, ";?")), (n = new RegExp("function" + m + "\\s*\\(\\s*" + g + "\\s*\\)\\s*{\\s*" + t + "\\s*}"));
-                    } else n = new RegExp(o(l).replace(/\s+/g, "\\s+"));
-                    if ((a = A(n, s))) return a;
-                    if ((r = /^function on([\w$]+)\s*\(event\)\s*\{\s*(\S[\s\S]*\S)\s*\}\s*$/.exec(l))) {
-                      var v = r[1];
-                      if (((t = d(r[2])), (a = A((n = new RegExp("on" + v + "=[\\'\"]\\s*" + t + "\\s*[\\'\"]", "i")), s[0])))) return a;
-                      if ((a = A((n = new RegExp(t)), s))) return a;
-                    }
-                    return null;
-                  }
-                }
-
-                function m(e) {
-                  if (!e.stack) return null;
-                  for (
-                    var t,
-                      i,
-                      n,
-                      o = /^\s*at (.*?) ?\(((?:file|https?|blob|chrome-extension|native|eval|webpack|<anonymous>|\/).*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i,
-                      s = /^\s*(.*?)(?:\((.*?)\))?(?:^|@)((?:file|https?|blob|chrome|webpack|resource|\[native).*?|[^@]*bundle)(?::(\d+))?(?::(\d+))?\s*$/i,
-                      d = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:file|ms-appx|https?|webpack|blob):.*?):(\d+)(?::(\d+))?\)?\s*$/i,
-                      A = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i,
-                      p = /\((\S*)(?::(\d+))(?::(\d+))\)/,
-                      h = e.stack.split("\n"),
-                      m = [],
-                      g = /^(.*) is undefined$/.exec(e.message),
-                      v = 0,
-                      f = h.length;
-                    v < f;
-                    ++v
-                  ) {
-                    if ((i = o.exec(h[v]))) {
-                      var b = i[2] && 0 === i[2].indexOf("native");
-                      i[2] && 0 === i[2].indexOf("eval") && (t = p.exec(i[2])) && ((i[2] = t[1]), (i[3] = t[2]), (i[4] = t[3])),
-                        (n = {
-                          url: b ? null : i[2],
-                          func: i[1] || c,
-                          args: b ? [i[2]] : [],
-                          line: i[3] ? +i[3] : null,
-                          column: i[4] ? +i[4] : null,
-                        });
-                    } else if ((i = d.exec(h[v])))
-                      n = {
-                        url: i[2],
-                        func: i[1] || c,
-                        args: [],
-                        line: +i[3],
-                        column: i[4] ? +i[4] : null,
-                      };
-                    else {
-                      if (!(i = s.exec(h[v]))) continue;
-                      i[3] && i[3].indexOf(" > eval") > -1 && (t = A.exec(i[3])) ? ((i[3] = t[1]), (i[4] = t[2]), (i[5] = null)) : 0 !== v || i[5] || u(e.columnNumber) || (m[0].column = e.columnNumber + 1),
-                        (n = {
-                          url: i[3],
-                          func: i[1] || c,
-                          args: i[2] ? i[2].split(",") : [],
-                          line: i[4] ? +i[4] : null,
-                          column: i[5] ? +i[5] : null,
-                        });
-                    }
-                    !n.func && n.line && (n.func = r(n.url, n.line)), (n.context = n.line ? a(n.url, n.line) : null), m.push(n);
-                  }
-                  return m.length
-                    ? (m[0] && m[0].line && !m[0].column && g && (m[0].column = l(g[1], m[0].url, m[0].line)),
-                      {
-                        mode: "stack",
-                        name: e.name,
-                        message: e.message,
-                        stack: m,
-                      })
-                    : null;
-                }
-
-                function g(e, t, i, n) {
-                  var o = {
-                    url: t,
-                    line: i,
-                  };
-                  if (o.url && o.line) {
-                    (e.incomplete = !1), o.func || (o.func = r(o.url, o.line)), o.context || (o.context = a(o.url, o.line));
-                    var s = / '([^']+)' /.exec(n);
-                    if ((s && (o.column = l(s[1], o.url, o.line)), e.stack.length > 0 && e.stack[0].url === o.url)) {
-                      if (e.stack[0].line === o.line) return !1;
-                      if (!e.stack[0].line && e.stack[0].func === o.func) return (e.stack[0].line = o.line), (e.stack[0].context = o.context), !1;
-                    }
-                    return e.stack.unshift(o), (e.partial = !0), !0;
-                  }
-                  return (e.incomplete = !0), !1;
-                }
-
-                function v(e, t) {
-                  for (var i, n, a, o = /function\s+([_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*)?\s*\(/i, d = [], A = {}, p = !1, u = v.caller; u && !p; u = u.caller)
-                    if (u !== f && u !== s.report) {
-                      if (
-                        ((n = {
-                          url: null,
-                          func: c,
-                          args: [],
-                          line: null,
-                          column: null,
-                        }),
-                        u.name ? (n.func = u.name) : (i = o.exec(u.toString())) && (n.func = i[1]),
-                        void 0 === n.func)
-                      )
-                        try {
-                          n.func = i.input.substring(0, i.input.indexOf("{"));
-                        } catch (e) {}
-                      if ((a = h(u))) {
-                        (n.url = a.url), (n.line = a.line), n.func === c && (n.func = r(n.url, n.line));
-                        var m = / '([^']+)' /.exec(e.message || e.description);
-                        m && (n.column = l(m[1], a.url, a.line));
-                      }
-                      A["" + u] ? (p = !0) : (A["" + u] = !0), d.push(n);
-                    }
-                  t && d.splice(0, t);
-                  var b = {
-                    mode: "callers",
-                    name: e.name,
-                    message: e.message,
-                    stack: d,
-                  };
-                  return g(b, e.sourceURL || e.fileName, e.line || e.lineNumber, e.message || e.description), b;
-                }
-
-                function f(t, o) {
-                  var s = null;
-                  o = null == o ? 0 : +o;
-                  try {
-                    if (
-                      ((s = (function (e) {
-                        var t = e.stacktrace;
-                        if (t) {
-                          for (
-                            var i,
-                              n = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i,
-                              o = / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^\)]+))\((.*)\))? in (.*):\s*$/i,
-                              s = t.split("\n"),
-                              d = [],
-                              A = 0;
-                            A < s.length;
-                            A += 2
-                          ) {
-                            var c = null;
-                            if (
-                              ((i = n.exec(s[A]))
-                                ? (c = {
-                                    url: i[2],
-                                    line: +i[1],
-                                    column: null,
-                                    func: i[3],
-                                    args: [],
-                                  })
-                                : (i = o.exec(s[A])) &&
-                                  (c = {
-                                    url: i[6],
-                                    line: +i[1],
-                                    column: +i[2],
-                                    func: i[3] || i[4],
-                                    args: i[5] ? i[5].split(",") : [],
-                                  }),
-                              c)
-                            ) {
-                              if ((!c.func && c.line && (c.func = r(c.url, c.line)), c.line))
-                                try {
-                                  c.context = a(c.url, c.line);
-                                } catch (e) {}
-                              c.context || (c.context = [s[A + 1]]), d.push(c);
-                            }
-                          }
-                          return d.length
-                            ? {
-                                mode: "stacktrace",
-                                name: e.name,
-                                message: e.message,
-                                stack: d,
-                              }
-                            : null;
-                        }
-                      })(t)),
-                      s)
-                    )
-                      return s;
-                  } catch (t) {
-                    e;
-                  }
-                  try {
-                    if ((s = m(t))) return s;
-                  } catch (t) {
-                    e;
-                  }
-                  try {
-                    if (
-                      ((s = (function (e) {
-                        var t = e.message.split("\n");
-                        if (t.length < 4) return null;
-                        var o,
-                          s = /^\s*Line (\d+) of linked script ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
-                          c = /^\s*Line (\d+) of inline#(\d+) script in ((?:file|https?|blob)\S+)(?:: in function (\S+))?\s*$/i,
-                          l = /^\s*Line (\d+) of function script\s*$/i,
-                          u = [],
-                          h = i && i.document && i.document.getElementsByTagName("script"),
-                          m = [];
-                        for (var g in h) p(h, g) && !h[g].src && m.push(h[g]);
-                        for (var v = 2; v < t.length; v += 2) {
-                          var f = null;
-                          if ((o = s.exec(t[v])))
-                            f = {
-                              url: o[2],
-                              func: o[3],
-                              args: [],
-                              line: +o[1],
-                              column: null,
-                            };
-                          else if ((o = c.exec(t[v]))) {
-                            f = {
-                              url: o[3],
-                              func: o[4],
-                              args: [],
-                              line: +o[1],
-                              column: null,
-                            };
-                            var b = +o[1],
-                              y = m[o[2] - 1];
-                            if (y) {
-                              var k = n(f.url);
-                              if (k) {
-                                var w = (k = k.join("\n")).indexOf(y.innerText);
-                                w >= 0 && (f.line = b + k.substring(0, w).split("\n").length);
-                              }
-                            }
-                          } else if ((o = l.exec(t[v]))) {
-                            var I = i.location.href.replace(/#.*$/, ""),
-                              S = A(new RegExp(d(t[v + 1])), [I]);
-                            f = {
-                              url: I,
-                              func: "",
-                              args: [],
-                              line: S ? S.line : o[1],
-                              column: null,
-                            };
-                          }
-                          if (f) {
-                            f.func || (f.func = r(f.url, f.line));
-                            var E = a(f.url, f.line),
-                              _ = E ? E[Math.floor(E.length / 2)] : null;
-                            E && _.replace(/^\s*/, "") === t[v + 1].replace(/^\s*/, "") ? (f.context = E) : (f.context = [t[v + 1]]), u.push(f);
-                          }
-                        }
-                        return u.length
-                          ? {
-                              mode: "multiline",
-                              name: e.name,
-                              message: t[0],
-                              stack: u,
-                            }
-                          : null;
-                      })(t)),
-                      s)
-                    )
-                      return s;
-                  } catch (t) {
-                    e;
-                  }
-                  try {
-                    if ((s = v(t, o + 1))) return s;
-                  } catch (t) {
-                    e;
-                  }
-                  return {
-                    name: t.name,
-                    message: t.message,
-                    mode: "failed",
-                  };
-                }
-                return (
-                  (f.augmentStackTraceWithInitialElement = g),
-                  (f.computeStackTraceFromStackProp = m),
-                  (f.guessFunctionName = r),
-                  (f.gatherContext = a),
-                  (f.ofCaller = function (e) {
-                    e = 1 + (null == e ? 0 : +e);
-                    try {
-                      throw new Error();
-                    } catch (t) {
-                      return f(t, e + 1);
-                    }
-                  }),
-                  (f.getSource = n),
-                  f
-                );
-              })()),
-              (s.extendToAsynchronousCallbacks = function () {
-                var e = function (e) {
-                  var t = i[e];
-                  i[e] = function () {
-                    var e = A.call(arguments),
-                      i = e[0];
-                    return "function" == typeof i && (e[0] = s.wrap(i)), t.apply ? t.apply(this, e) : t(e[0], e[1]);
-                  };
-                };
-                e("setTimeout"), e("setInterval");
-              }),
-              s.remoteFetching || (s.remoteFetching = !0),
-              s.collectWindowErrors || (s.collectWindowErrors = !0),
-              (!s.linesOfContext || s.linesOfContext < 1) && (s.linesOfContext = 11),
-              (r = []),
-              void 0 === (a = "function" == typeof (n = s) ? n.apply(t, r) : n) || (e.exports = a);
-          }
-
-          function p(e, t) {
-            return Object.prototype.hasOwnProperty.call(e, t);
-          }
-
-          function u(e) {
-            return void 0 === e;
-          }
-        })("undefined" != typeof window ? window : i.g);
-      },
-    },
-    t = {};
-
-  function i(n) {
-    if (t[n]) return t[n].exports;
-    var r = (t[n] = {
-      exports: {},
-    });
-    return e[n](r, r.exports, i), r.exports;
-  }
-  (i.n = (e) => {
-    var t = e && e.__esModule ? () => e.default : () => e;
-    return (
-      i.d(t, {
-        a: t,
-      }),
-      t
-    );
-  }),
-    (i.d = (e, t) => {
-      for (var n in t)
-        i.o(t, n) &&
-          !i.o(e, n) &&
-          Object.defineProperty(e, n, {
-            enumerable: !0,
-            get: t[n],
-          });
-    }),
-    (i.g = (function () {
-      if ("object" == typeof globalThis) return globalThis;
-      try {
-        return this || new Function("return this")();
-      } catch (e) {
-        if ("object" == typeof window) return window;
-      }
-    })()),
-    (i.o = (e, t) => Object.prototype.hasOwnProperty.call(e, t)),
-    (() => {
-      "use strict";
-      var e = i(564),
-        t = i.n(e);
-      const n = {
+    "use strict";
+    const e = {
         ready: "pokiAppReady",
-        adblocked: "pokiAppAdblocked",
+        failed: "pokiAppFailed",
+        startLoading: "pokiAppStartLoading",
         ads: {
-          completed: "pokiAdsCompleted",
-          error: "pokiAdsError",
-          impression: "pokiAdsImpression",
-          durationChange: "pokiAdsDurationChange",
-          limit: "pokiAdsLimit",
-          ready: "pokiAdsReady",
-          requested: "pokiAdsRequested",
-          prebidRequested: "pokiAdsPrebidRequested",
-          skipped: "pokiAdsSkipped",
-          started: "pokiAdsStarted",
-          stopped: "pokiAdsStopped",
-          busy: "pokiAdsBusy",
-          position: {
-            preroll: "PP",
-            midroll: "PM",
-            rewarded: "PR",
-            display: "DP",
-          },
-          video: {
-            clicked: "pokiVideoAdsClicked",
-            firstQuartile: "pokiVideoAdsFirstQuartile",
-            midPoint: "pokiVideoAdsMidPoint",
-            thirdQuartile: "pokiVideoAdsThirdQuartile",
-            error: "pokiVideoAdsError",
-            loaderError: "pokiVideoAdsLoaderError",
-            paused: "pokiVideoAdsPauseTriggered",
-            resumed: "pokiVideoAdsResumedTriggered",
-            progress: "pokiVideoAdsProgress",
-            buffering: "pokiVideoAdsBuffering",
-          },
-        },
-        info: {
-          messages: {
-            timeLimit: "The ad-request was not processed, because of a time constraint",
-            prerollLimit: "The ad-request was cancelled, because we're not allowed to show a preroll",
-          },
-        },
-        message: {
-          event: "pokiMessageEvent",
-          sdkDetails: "pokiMessageSdkDetails",
-          toggleProgrammaticAds: "pokiMessageToggleProgrammaticAds",
-        },
-        tracking: {
-          custom: "pokiTrackingCustom",
-          togglePlayerAdvertisingConsent: "pokiTrackingTogglePlayerAdvertisingConsent",
-          debugTrueInProduction: "pokiMessageDebugTrueProduction",
-          screen: {
-            gameplayStart: "pokiTrackingScreenGameplayStart",
-            gameplayStop: "pokiTrackingScreenGameplayStop",
-            gameLoadingStarted: "pokiTrackingScreenGameLoadingStarted",
-            gameLoadingProgress: "pokiTrackingScreenGameLoadingProgress",
-            gameLoadingFinished: "pokiTrackingScreenGameLoadingFinished",
-            commercialBreak: "pokiTrackingScreenCommercialBreak",
-            rewardedBreak: "pokiTrackingScreenRewardedBreak",
-            happyTime: "pokiTrackingScreenHappyTime",
-            firstRound: "pokiTrackingScreenFirstRound",
-            roundStart: "pokiTrackingScreenRoundStart",
-            roundEnd: "pokiTrackingScreenRoundEnd",
-            gameInteractive: "pokiTrackingScreenGameInteractive",
-            displayAd: "pokiTrackingScreenDisplayAdRequest",
-            destroyAd: "pokiTrackingScreenDisplayAdDestroy",
-          },
-          sdk: {
-            status: {
-              initialized: "pokiTrackingSdkStatusInitialized",
-              failed: "pokiTrackingSdkStatusFailed",
-            },
-          },
-          ads: {
-            status: {
-              busy: "pokiTrackingAdsStatusBusy",
-              completed: "pokiTrackingAdsStatusCompleted",
-              error: "pokiTrackingAdsStatusError",
-              displayError: "pokiTrackingAdsStatusDisplayError",
-              impression: "pokiTrackingAdsStatusImpression",
-              limit: "pokiTrackingAdsStatusLimit",
-              ready: "pokiTrackingAdsStatusReady",
-              requested: "pokiTrackingAdsStatusRequested",
-              prebidRequested: "pokiTrackingAdsStatusPrebidRequested",
-              skipped: "pokiTrackingAdsStatusSkipped",
-              started: "pokiTrackingAdsStatusStarted",
-              buffering: "pokiTrackingAdsStatusBuffering",
+            startTimer: "pokiStartTimer",
+            completed: "pokiAdsCompleted",
+            error: "pokiAdsError",
+            impression: "pokiAdsImpression",
+            durationChange: "pokiAdsDurationChange",
+            limit: "pokiAdsLimit",
+            ready: "pokiAdsReady",
+            requested: "pokiAdsRequested",
+            prebidRequested: "pokiAdsPrebidRequested",
+            skipped: "pokiAdsSkipped",
+            started: "pokiAdsStarted",
+            stopped: "pokiAdsStopped",
+            busy: "pokiAdsBusy",
+            loaded: "pokiAdsLoaded",
+            position: {
+                preroll: "PP",
+                midroll: "PM",
+                rewarded: "PR",
+                display: "DP"
             },
             video: {
-              clicked: "pokiTrackingAdsVideoClicked",
-              error: "pokiTrackingAdsVideoError",
-              loaderError: "pokiTrackingAdsVideoLoaderError",
-              progress: "pokiTrackingAdsVideoProgress",
-              paused: "pokiTrackingAdsVideoPaused",
-              resumed: "pokiTrackingAdsVideoResumed",
+                clicked: "pokiVideoAdsClicked",
+                firstQuartile: "pokiVideoAdsFirstQuartile",
+                midPoint: "pokiVideoAdsMidPoint",
+                thirdQuartile: "pokiVideoAdsThirdQuartile",
+                error: "pokiVideoAdsError",
+                loaderError: "pokiVideoAdsLoaderError",
+                paused: "pokiVideoAdsPauseTriggered",
+                resumed: "pokiVideoAdsResumedTriggered",
+                progress: "pokiVideoAdsProgress",
+                buffering: "pokiVideoAdsBuffering",
+                startHouseAdFlow: "pokiVideoAdsStartHouseAdFlow"
             },
             display: {
-              requested: "pokiTrackingScreenDisplayAdRequested",
-              impression: "pokiTrackingScreenDisplayAdImpression",
-              viewable: "pokiTrackingScreenDisplayAdViewable",
+                error: "pokiDisplayAdsError"
             },
-          },
+            extendedVideoError: "pokiAdsExtendedVideoError",
+            debugging: "pokiAdsDebugging"
         },
-      };
-      const r = (function () {
-        function e() {}
-        return (e.debug = !1), (e.log = !1), e;
-      })();
-      var a = function () {
-        return (
-          (a =
-            Object.assign ||
-            function (e) {
-              for (var t, i = 1, n = arguments.length; i < n; i++) for (var r in (t = arguments[i])) Object.prototype.hasOwnProperty.call(t, r) && (e[r] = t[r]);
-              return e;
-            }),
-          a.apply(this, arguments)
-        );
-      };
-      const o = (function () {
-        function e() {}
-        return (
-          (e.clearEventListeners = function () {
-            this.listeners = {};
-          }),
-          (e.removeEventListener = function (e, t) {
-            if (Object.prototype.hasOwnProperty.call(this.listeners, e)) {
-              var i = this.listeners[e].indexOf(t);
-              -1 !== i && this.listeners[e].splice(i, 1);
+        info: {
+            messages: {
+                timeLimit: "The ad-request was not processed, because of a time constraint",
+                prerollLimit: "The ad-request was cancelled, because we're not allowed to show a preroll (PokiSDK.commercialBreak before PokiSDK.gameplayStart)",
+                disabled: "The ad-request was cancelled, because we've disabled this format for this specific configuration"
             }
-          }),
-          (e.addEventListener = function (e, t, i) {
-            var n = this;
-            if ((void 0 === i && (i = !1), (i = !!i), Object.prototype.hasOwnProperty.call(this.listeners, e) || (this.listeners[e] = []), i)) {
-              var r = function (i) {
-                n.removeEventListener.bind(n)(e, r), t(i);
-              };
-              this.listeners[e].push(r);
-            } else this.listeners[e].push(t);
-          }),
-          (e.dispatchEvent = function (e, t) {
-            void 0 === t && (t = {}), !r.debug || (window.process && window.process.env && "test" === window.process.env.NODE_ENV) || console.info(e, t);
-            for (var i = Object.keys(this.listeners), n = 0; n < i.length; n++) {
-              var o = i[n];
-              if (e === o) for (var s = this.listeners[o], d = 0; d < s.length; d++) s[d](a(a({}, this.dataAnnotations), t));
-            }
-          }),
-          (e.setDataAnnotations = function (e) {
-            this.dataAnnotations = a(a({}, this.dataAnnotations), e);
-          }),
-          (e.getDataAnnotations = function () {
-            return this.dataAnnotations;
-          }),
-          (e.clearAnnotations = function () {
-            this.dataAnnotations = {};
-          }),
-          (e.listeners = {}),
-          (e.dataAnnotations = {}),
-          e
-        );
-      })();
-      const s = function (e, t) {
-        var i = !1;
-        return (
-          Object.keys(t).forEach(function (n) {
-            t[n] === e && (i = !0);
-          }),
-          i
-        );
-      };
-
-      function d() {
-        var e,
-          t = (null === (e = null === window || void 0 === window ? void 0 : window.location) || void 0 === e ? void 0 : e.hostname) || "";
-        return "game-cdn.poki.com" === t || t.endsWith(".poki-gdn.com"), !1;
-      }
-      var A = {
-          adTagUrl: "",
-          adTiming: {
-            preroll: !1,
-            timeBetweenAds: 12e4,
-            timePerTry: 7e3,
-            startAdsAfter: 12e4,
-          },
-          waterfallRetries: d() ? 1 : 2,
         },
-        c = {
-          AE: {
-            video: {
-              amazon: 0.7,
-              appnexus: 0.76,
-            },
-          },
-          AL: {
-            video: {
-              amazon: 0.75,
-            },
-          },
-          AT: {
-            video: {
-              appnexus: 0.6,
-              onetag: 0.81,
-              pubmatic: 0.82,
-            },
-          },
-          AU: {
-            video: {
-              pubmatic: 0.43,
-              rubicon: 0.38,
-            },
-          },
-          AZ: {
-            video: {
-              amazon: 0.72,
-              onetag: 0.84,
-            },
-          },
-          BE: {
-            video: {
-              amazon: 0.83,
-              appnexus: 0.79,
-            },
-          },
-          BG: {
-            video: {
-              appnexus: 0.72,
-            },
-          },
-          BO: {
-            video: {
-              ix: 0.84,
-            },
-          },
-          CA: {
-            video: {
-              amazon: 0.84,
-              pubmatic: 0.81,
-            },
-          },
-          CL: {
-            video: {
-              amazon: 0.78,
-            },
-          },
-          CO: {
-            video: {
-              amazon: 0.85,
-            },
-          },
-          CZ: {
-            video: {
-              appnexus: 0.77,
-            },
-          },
-          DE: {
-            video: {
-              appnexus: 0.21,
-              onetag: 0.81,
-            },
-          },
-          DO: {
-            video: {
-              onetag: 0.84,
-            },
-          },
-          DZ: {
-            video: {
-              amazon: 0.41,
-            },
-          },
-          EG: {
-            video: {
-              amazon: 0.15,
-              rubicon: 0.63,
-            },
-          },
-          ES: {
-            video: {
-              appnexus: 0.66,
-              ix: 0.84,
-              onetag: 0.82,
-              openx: 0.84,
-              pubmatic: 0.79,
-            },
-          },
-          FI: {
-            video: {
-              appnexus: 0.43,
-            },
-          },
-          FR: {
-            video: {
-              appnexus: 0.26,
-              ix: 0.53,
-              onetag: 0.81,
-            },
-          },
-          GB: {
-            video: {
-              districtm: 0.83,
-              onetag: 0.8,
-            },
-          },
-          GT: {
-            video: {
-              amazon: 0.74,
-            },
-          },
-          HU: {
-            video: {
-              amazon: 0.55,
-              appnexus: 0.65,
-            },
-          },
-          IE: {
-            video: {
-              onetag: 0.66,
-            },
-          },
-          IN: {
-            video: {
-              appnexus: 0.72,
-            },
-          },
-          IT: {
-            video: {
-              appnexus: 0.46,
-              onetag: 0.46,
-            },
-          },
-          JP: {
-            video: {
-              onetag: 0.84,
-            },
-          },
-          KE: {
-            video: {
-              onetag: 0.84,
-            },
-          },
-          KW: {
-            video: {
-              onetag: 0.83,
-            },
-          },
-          KZ: {
-            video: {
-              onetag: 0.8,
-            },
-          },
-          LU: {
-            video: {
-              onetag: 0.82,
-            },
-          },
-          MA: {
-            video: {
-              amazon: 0.68,
-            },
-          },
-          MD: {
-            video: {
-              onetag: 0.7,
-            },
-          },
-          MX: {
-            video: {
-              amazon: 0.47,
-              pubmatic: 0.75,
-            },
-          },
-          NL: {
-            video: {
-              ix: 0.39,
-              onetag: 0.81,
-              openx: 0.71,
-              richaudience: 0.72,
-            },
-          },
-          NZ: {
-            video: {
-              amazon: 0.76,
-              openx: 0.83,
-            },
-          },
-          OM: {
-            video: {
-              onetag: 0.84,
-            },
-          },
-          PE: {
-            video: {
-              amazon: 0.82,
-            },
-          },
-          PL: {
-            video: {
-              appnexus: 0.84,
-              districtm: 0.71,
-              onetag: 0.73,
-            },
-          },
-          PR: {
-            video: {
-              amazon: 0.83,
-            },
-          },
-          RU: {
-            video: {
-              amazon: 0.78,
-              onetag: 0.84,
-            },
-          },
-          SA: {
-            video: {
-              amazon: 0.83,
-              appnexus: 0.74,
-            },
-          },
-          SK: {
-            video: {
-              appnexus: 0.79,
-            },
-          },
-          TN: {
-            video: {
-              amazon: 0.61,
-            },
-          },
-          UA: {
-            video: {
-              onetag: 0.8,
-            },
-          },
-          US: {
-            video: {
-              pubmatic: 0.01,
-            },
-          },
-          VE: {
-            video: {
-              onetag: 0.8,
-            },
-          },
-          VN: {
-            video: {
-              appnexus: 0.81,
-            },
-          },
-        };
-      const l = A;
-      const p = function (e) {
-        return e instanceof Array ? e : [e];
-      };
-      const u = (function () {
-        function e(e) {
-          void 0 === e && (e = {}),
-            this.setTimings(e),
-            (this.timingIdx = {
-              timePerTry: 0,
-            }),
-            (this.timers = {
-              timePerTry: void 0,
-              timeBetweenAds: void 0,
-              startAdsAfter: void 0,
-            }),
-            o.addEventListener(n.ads.requested, this.startTimeBetweenAdsTimer.bind(this)),
-            o.addEventListener(n.ads.completed, this.startTimeBetweenAdsTimer.bind(this)),
-            o.addEventListener(n.ads.stopped, this.startTimeBetweenAdsTimer.bind(this));
-        }
-        return (
-          (e.prototype.setTimings = function (e) {
-            var t = l.adTiming,
-              i = e.preroll,
-              n = void 0 === i ? t.preroll : i,
-              r = e.timePerTry,
-              a = void 0 === r ? t.timePerTry : r,
-              o = e.timeBetweenAds,
-              s = void 0 === o ? t.timeBetweenAds : o,
-              d = e.startAdsAfter,
-              A = void 0 === d ? t.startAdsAfter : d;
-            this.timings = {
-              preroll: !1 !== n,
-              timePerTry: p(a),
-              timeBetweenAds: s,
-              startAdsAfter: A,
-            };
-          }),
-          (e.prototype.startTimeBetweenAdsTimer = function () {
-            this.startTimer("timeBetweenAds");
-          }),
-          (e.prototype.startStartAdsAfterTimer = function () {
-            this.startTimer("startAdsAfter");
-          }),
-          (e.prototype.requestPossible = function () {
-            return !this.timers.timeBetweenAds && !this.timers.startAdsAfter;
-          }),
-          (e.prototype.startWaterfallTimer = function (e) {
-            this.startTimer("timePerTry", e);
-          }),
-          (e.prototype.stopWaterfallTimer = function () {
-            this.stopTimer("timePerTry");
-          }),
-          (e.prototype.nextWaterfallTimer = function () {
-            this.nextTiming("timePerTry");
-          }),
-          (e.prototype.resetWaterfallTimerIdx = function () {
-            this.resetTimingIdx("timePerTry");
-          }),
-          (e.prototype.stopTimer = function (e) {
-            this.timers[e] && (clearTimeout(this.timers[e]), (this.timers[e] = void 0));
-          }),
-          (e.prototype.startTimer = function (e, t) {
-            var i = this;
-            void 0 === t && (t = function () {}),
-              this.getTiming(e) <= 0
-                ? t()
-                : (this.timers[e] && clearTimeout(this.timers[e]),
-                  (this.timers[e] = window.setTimeout(function () {
-                    i.stopTimer(e), t();
-                  }, this.getTiming(e))));
-          }),
-          (e.prototype.getTiming = function (e) {
-            var t = this.timings[e];
-            return t instanceof Array ? t[this.timingIdx[e]] : t;
-          }),
-          (e.prototype.nextTiming = function (e) {
-            if (void 0 === this.timingIdx[e]) throw new Error("AdTimings Error: " + e + " does not have multiple timers");
-            this.timingIdx[e] = (this.timingIdx[e] + 1) % this.timings[e].length;
-          }),
-          (e.prototype.resetTimingIdx = function (e) {
-            if (void 0 === this.timingIdx[e]) throw new Error("AdTimings Error: " + e + " does not have multiple timers");
-            this.timingIdx[e] = 0;
-          }),
-          (e.prototype.prerollPossible = function () {
-            return this.timings.preroll;
-          }),
-          e
-        );
-      })();
-      var h = document.location.hostname;
-
-      function m(e) {
-        var t = new RegExp(e + "=([^;]+)(?:;|$)").exec(document.cookie);
-        return t ? t[1] : "";
-      }
-
-      function g(e, t) {
-        document.cookie = e + "=" + t + "; path=/; samesite=none; secure; max-age=15552000; domain=" + h;
-      }
-      h.endsWith("poki-gdn.com") && (h = "poki-gdn.com");
-      var v = function (e, t, i, n) {
-          return new (i || (i = Promise))(function (r, a) {
-            function o(e) {
-              try {
-                d(n.next(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function s(e) {
-              try {
-                d(n.throw(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function d(e) {
-              var t;
-              e.done
-                ? r(e.value)
-                : ((t = e.value),
-                  t instanceof i
-                    ? t
-                    : new i(function (e) {
-                        e(t);
-                      })).then(o, s);
-            }
-            d((n = n.apply(e, t || [])).next());
-          });
+        playtest: {
+            startVideo: "pokiPlaytestStartVideo",
+            stopVideo: "pokiPlaytestStopVideo"
         },
-        f = function (e, t) {
-          var i,
-            n,
-            r,
-            a,
-            o = {
-              label: 0,
-              sent: function () {
-                if (1 & r[0]) throw r[1];
-                return r[1];
-              },
-              trys: [],
-              ops: [],
-            };
-          return (
-            (a = {
-              next: s(0),
-              throw: s(1),
-              return: s(2),
-            }),
-            "function" == typeof Symbol &&
-              (a[Symbol.iterator] = function () {
-                return this;
-              }),
-            a
-          );
-
-          function s(a) {
-            return function (s) {
-              return (function (a) {
-                if (i) throw new TypeError("Generator is already executing.");
-                for (; o; )
-                  try {
-                    if (((i = 1), n && (r = 2 & a[0] ? n.return : a[0] ? n.throw || ((r = n.return) && r.call(n), 0) : n.next) && !(r = r.call(n, a[1])).done)) return r;
-                    switch (((n = 0), r && (a = [2 & a[0], r.value]), a[0])) {
-                      case 0:
-                      case 1:
-                        r = a;
-                        break;
-                      case 4:
-                        return (
-                          o.label++,
-                          {
-                            value: a[1],
-                            done: !1,
-                          }
-                        );
-                      case 5:
-                        o.label++, (n = a[1]), (a = [0]);
-                        continue;
-                      case 7:
-                        (a = o.ops.pop()), o.trys.pop();
-                        continue;
-                      default:
-                        if (!((r = o.trys), (r = r.length > 0 && r[r.length - 1]) || (6 !== a[0] && 2 !== a[0]))) {
-                          o = 0;
-                          continue;
-                        }
-                        if (3 === a[0] && (!r || (a[1] > r[0] && a[1] < r[3]))) {
-                          o.label = a[1];
-                          break;
-                        }
-                        if (6 === a[0] && o.label < r[1]) {
-                          (o.label = r[1]), (r = a);
-                          break;
-                        }
-                        if (r && o.label < r[2]) {
-                          (o.label = r[2]), o.ops.push(a);
-                          break;
-                        }
-                        r[2] && o.ops.pop(), o.trys.pop();
-                        continue;
-                    }
-                    a = t.call(e, o);
-                  } catch (e) {
-                    (a = [6, e]), (n = 0);
-                  } finally {
-                    i = r = 0;
-                  }
-                if (5 & a[0]) throw a[1];
-                return {
-                  value: a[0] ? a[1] : void 0,
-                  done: !0,
-                };
-              })([a, s]);
-            };
-          }
+        message: {
+            event: "pokiMessageEvent",
+            sdkDetails: "pokiMessageSdkDetails",
+            setPokiURLParams: "pokiMessageSetPokiURLParams",
+            sendGameScreenshot: "pokiMessageSendScreenshot",
+            sendGameRawScreenshot: "pokiMessageSendRawScreenshot",
+            sendUploadScreenshot: "pokiMessageSendUploadScreenshot",
+            sendCommand: "pokiMessageSendCommand",
+            sendInspectorEvent: "pokiMessageInspectorEvent",
+            sendInspectorCookies: "pokiMessageSendInspectorCookies",
+            sendInspectorConsole: "pokiMessageSendInspectorConsole"
         },
-        b = function (e, t, i) {
-          if (i || 2 === arguments.length) for (var n, r = 0, a = t.length; r < a; r++) (!n && r in t) || (n || (n = Array.prototype.slice.call(t, 0, r)), (n[r] = t[r]));
-          return e.concat(n || Array.prototype.slice.call(t));
-        },
-        y = "poki_gcuid",
-        k = m(y);
-      const w = (function () {
-          function e() {}
-          return (
-            (e.collectAndLog = function () {
-              return v(this, void 0, void 0, function () {
-                var e, t, i, n, r;
-                return f(this, function (a) {
-                  switch (a.label) {
-                    case 0:
-                      return a.trys.push([0, 5, , 6]), [4, window.cookieStore.getAll()];
-                    case 1:
-                      return (e = a.sent()), window.indexedDB.databases ? [4, window.indexedDB.databases()] : [3, 3];
-                    case 2:
-                      return (i = a.sent()), [3, 4];
-                    case 3:
-                      (i = []), (a.label = 4);
-                    case 4:
-                      return (
-                        (t = i),
-                        (n = b(
-                          b(
-                            b(
-                              [],
-                              e.map(function (e) {
-                                return {
-                                  name: e.name,
-                                  expire_seconds: Math.round((e.expires - Date.now()) / 1e3),
-                                  type: "cookie",
-                                };
-                              }),
-                              !0
-                            ),
-                            Object.keys(window.localStorage).map(function (e) {
-                              return {
-                                name: e,
-                                expire_seconds: 15552e3,
-                                type: "localStorage",
-                              };
-                            }),
-                            !0
-                          ),
-                          t.map(function (e) {
-                            return {
-                              name: e.name,
-                              expire_seconds: 0,
-                              type: "idb",
-                            };
-                          }),
-                          !0
-                        )),
-                        (r = {
-                          cookies: n,
-                          p4d_game_id: tt.gameId,
-                          user_id: k,
-                        }),
-                        window
-                          .fetch("https://t.poki.io/game-cookies", {
-                            method: "post",
-                            body: JSON.stringify(r),
-                          })
-                          .catch(),
-                        [3, 6]
-                      );
-                    case 5:
-                      return a.sent(), [3, 6];
-                    case 6:
-                      return [2];
-                  }
-                });
-              });
-            }),
-            (e.trackSavegames = function () {
-              window.cookieStore && window.cookieStore.getAll && tt.gameId && (Math.random() > 0.01 || (k || ((k = Math.random().toString(36).substr(2, 9)), g(y, k)), e.collectAndLog(), setInterval(e.collectAndLog, 12e4)));
-            }),
-            e
-          );
-        })(),
-        I = function () {
-          return window.location.href;
-        },
-        S = function () {
-          return "undefined" != typeof navigator && /(?:phone|windows\s+phone|ipod|blackberry|(?:android|bb\d+|meego|silk|googlebot) .+? mobile|palm|windows\s+ce|opera\smini|avantgo|mobilesafari|docomo)/i.test(navigator.userAgent);
-        },
-        E = function () {
-          return "undefined" != typeof navigator && /(?:ipad|playbook|(?:android|bb\d+|meego|silk)(?! .+? mobile))/i.test(navigator.userAgent);
-        },
-        _ = function (e, t) {
-          var i;
-          if ("undefined" == typeof window && !t) return "";
-          e = e.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-          var n = new RegExp("(?:[\\?&]|^)" + e + "=([^&#]*)").exec(t || (null === (i = null === window || void 0 === window ? void 0 : window.location) || void 0 === i ? void 0 : i.search) || "");
-          return null === n ? "" : decodeURIComponent(n[1].replace(/\+/g, " "));
-        },
-        x = function () {
-          return "undefined" != typeof navigator && /MSIE \\d|Trident.*rv:/i.test(navigator.userAgent);
-        };
-      var C = {
-        1: "eNjDw1AVTr",
-        2: "HkuQJaWnBa",
-        3: "AfRKClvdYk",
-        4: "Db7uYbsnlW",
-        5: "UprdYKe74r",
-        6: "tBCJC9E6Y4",
-        7: "AfRKClvdYk",
-        8: "tJ44vpLpuM",
-        9: "mF5ASaga4A",
-        10: "rKV8rMwiwk",
-        11: "SvK8BH5qS5",
-        12: "SpfIMxnWTS",
-        13: "ysxIcmt3tW",
-        14: "gLmtGS4aUq",
-        15: "RU6ebIFLw9",
-        16: "r9G4tVMYw7",
-        17: "SgcDa5B8s1",
-        18: "AfRKClvdYk",
-        19: "DNZX8XdJXV",
-        20: "39o4YUyZTX",
-        21: "5sb2HFpz5a",
-        22: "pgXzCJZipE",
-        23: "Oani8EAGI9",
-        24: "IzCeh7d7vW",
-        25: "I5vRNtjoMr",
-        26: "KpySvG7luq",
-        27: "dK42J4rI14",
-        28: "HuYorw3fRg",
-        29: "mf84cGYc1h",
-        30: "9ALgxEyGXU",
-        31: "lBzSdVGY8F",
-        32: "hKYgk9Wb8q",
-        33: "xPBr8E54eE",
-        34: "ZvIK2WKC7G",
-        35: "7kiYi3zlIX",
-        36: "VpygYMTDgm",
-        37: "mis9Mt4np4",
-        38: "AfRKClvdYk",
-        41: "Fqmjp9Hit3",
-        42: "lS2XGg058L",
-        43: "AfRKClvdYk",
-        46: "AfRKClvdYk",
-        47: "21OybbiIdc",
-        48: "AfRKClvdYk",
-        49: "CMVoMvvEmu",
-        50: "IoQrhRb3wU",
-        52: "AfRKClvdYk",
-        53: "AfRKClvdYk",
-      };
-      const T = function (e) {
-        return 15 === e ? "MP_gIE1VDieUi" : C[e] || "";
-      };
-      var B = ["AU", "CA", "IE", "NZ", "US", "GB"],
-        P = ["AT", "BE", "DK", "FI", "FR", "DE", "JA", "NO", "NL", "SA", "ES", "SE", "CH", "AE", "IT"],
-        D = ["BR", "CL", "CZ", "HU", "PL", "PT", "RU", "SK", "TH"],
-        M = ["AR", "BG", "CO", "EC", "GR", "IN", "MX", "PE", "PH", "RO", "TR", "UY"];
-
-      function R(e) {
-        return B.includes(e) ? 0.13 : P.includes(e) ? 0.07 : D.includes(e) ? 0.04 : 0.02;
-      }
-
-      function L(e) {
-        return "US" === e ? 1.5 : B.includes(e) ? 0.5 : P.includes(e) ? 0.15 : D.includes(e) ? 0.08 : M.includes(e) ? 0.03 : 0.02;
-      }
-      const z = function (e) {
-        r.debug
-          ? console.log(e)
-          : fetch("https://t.poki.io/adserver", {
-              method: "POST",
-              mode: "no-cors",
-              body: JSON.stringify(e),
-            });
-      };
-      var O = [
-        "https://a.poki.com/houseads/duo_survival_3.xml",
-        "https://a.poki.com/houseads/like_a_king.xml",
-        "https://a.poki.com/houseads/merge_cyber_racers.xml",
-        "https://a.poki.com/houseads/subway_surfers.xml",
-        "https://a.poki.com/houseads/tower_crush_compressed.xml",
-      ];
-
-      function G() {
-        return (e = O)[Math.floor(Math.random() * e.length)];
-        var e;
-      }
-      var j = {
-        v_k0treo: 2.5,
-        v_qr1wxs: 7.5,
-        v_9diccg: 19,
-        v_13q0xkw: 0.25,
-        v_dn33ls: 1,
-        v_z07u2o: 1.5,
-        v_1400iyo: 2.25,
-        v_9w8kxs: 3,
-        v_ufej9c: 3.5,
-        v_10960ao: 4.25,
-        v_1ksbym8: 4.75,
-        v_1ag9340: 5.25,
-        v_1tbhh4w: 5.75,
-        v_jjcgzk: 6.5,
-        v_brnu9s: 7,
-        v_1wscef4: 7.75,
-        v_q22xhc: 8.5,
-        v_f8irk0: 9,
-        v_1rik45c: 9.75,
-        v_lxhyww: 10.5,
-        v_a9z0u8: 11,
-        v_1yhiww0: 11.75,
-        v_10mwg74: 12.25,
-        v_1ji4u80: 12.75,
-        v_wm2c5c: 13.5,
-        v_2na6tc: 14,
-        v_1myzri8: 14.75,
-        v_3pzm68: 6,
-        v_16kerr4: 6.25,
-        v_1mdrmkg: 6.75,
-        v_1ga0k5c: 7.25,
-        v_5iwz5s: 8,
-        v_12tk934: 8.25,
-        v_1hsybr4: 8.75,
-        v_1cj61hc: 9.25,
-        v_y3r5kw: 9.5,
-        v_94ow0: 10,
-        v_15woqgw: 10.25,
-        v_1orx4hs: 10.75,
-        v_1d4e6f4: 11.25,
-        v_t57ev4: 11.5,
-        v_783hmo: 12,
-        v_m7hkao: 12.5,
-        v_hmo9hc: 13,
-        v_19djnr4: 13.25,
-        v_1twpm2o: 13.75,
-        v_17zlou8: 14.25,
-        v_ign1mo: 14.5,
-        v_ccvz7k: 15,
-        v_1f7b4sg: 15.25,
-        v_snq4g0: 15.5,
-        v_5wnf28: 16,
-        v_137aozk: 16.25,
-        v_1j0njsw: 16.75,
-        v_1b8yx34: 17.25,
-        v_yhhlhc: 17.5,
-        v_25swe8: 18,
-        v_15081z4: 18.25,
-        v_1pje0ao: 18.75,
-        v_1eptudc: 19.25,
-        v_1xl28e8: 19.75,
-        v_gfliio: 21,
-        v_3y3sao: 22,
-        v_ixhuyo: 22.5,
-        v_ro52io: 23.5,
-        v_qa73ls: 24.5,
-        v_emo5j4: 25,
-        v_yq5fk: 26,
-        v_aobxts: 27,
-        v_6shmgw: 28,
-        v_natgqo: 28.5,
-        v_x0f94w: 29.5,
-        v_d2hfr4: 31,
-        v_dch14w: 33,
-        v_1jyadc: 34,
-        v_8p5tz4: 36,
-        v_fwv9xc: 37,
-        v_c60r9c: 39,
-        v_58awow: 40,
-        v_bbcow: 42,
-        v_a0x534: 43,
-        v_hdmdq8: 45,
-        v_2e8b28: 46,
-        v_5nljb4: 48,
-        v_1wr0n4: 50,
-        v_pam1og: 0.5,
-        v_1ipf08w: 0.75,
-        v_1axqdj4: 1.25,
-        v_1qr38cg: 1.75,
-        v_15ldds: 2,
-        v_1q248w0: 2.75,
-        v_1eelatc: 3.25,
-        v_1x9tou8: 3.75,
-        v_8iam0w: 4,
-        v_nhooow: 4.5,
-        v_fq01z4: 5,
-        v_w0u77k: 5.5,
-        v_1vi5a0w: 15.75,
-        v_orvt34: 16.5,
-        v_dybn5s: 17,
-        v_1q8czr4: 17.75,
-        v_l11af4: 18.5,
-        v_uqn2tc: 19.5,
-        v_7zkdfk: 20,
-        v_o7a58g: 20.5,
-        v_vezl6o: 21.5,
-        v_b5t88w: 23,
-        v_4x2d4w: 24,
-        v_xhwjk0: 25.5,
-        v_lhw3r4: 26.5,
-        v_tjkbuo: 27.5,
-        v_h72ebk: 29,
-        v_31n3sw: 30,
-        v_64rl6o: 32,
-        v_9lmigw: 35,
-        v_3fdjpc: 38,
-        v_fapfcw: 41,
-        v_7o0lc0: 44,
-        v_clbdvk: 47,
-        v_ee8qv4: 49,
-      };
-      var U = function () {
-          return (
-            (U =
-              Object.assign ||
-              function (e) {
-                for (var t, i = 1, n = arguments.length; i < n; i++) for (var r in (t = arguments[i])) Object.prototype.hasOwnProperty.call(t, r) && (e[r] = t[r]);
-                return e;
-              }),
-            U.apply(this, arguments)
-          );
-        },
-        N = function (e, t, i) {
-          if (i || 2 === arguments.length) for (var n, r = 0, a = t.length; r < a; r++) (!n && r in t) || (n || (n = Array.prototype.slice.call(t, 0, r)), (n[r] = t[r]));
-          return e.concat(n || Array.prototype.slice.call(t));
-        },
-        Q = parseInt(_("site_id"), 10) || 0,
-        F = "desktop";
-      S() && (F = "mobile"), E() && (F = "tablet");
-      var X = "rewarded",
-        Z = "video",
-        K = {
-          "728x90": "/21682198607/" + F + "_ingame_728x90/" + Q + "_" + F + "_ingame_728x90",
-          "300x250": "/21682198607/" + F + "_ingame_300x250/" + Q + "_" + F + "_ingame_300x250",
-          "970x250": "/21682198607/" + F + "_ingame_970x250/" + Q + "_" + F + "_ingame_970x250",
-          "160x600": "/21682198607/" + F + "_ingame_160x600/" + Q + "_" + F + "_ingame_160x600",
-          "320x50": "/21682198607/" + F + "_ingame_320x50/" + Q + "_" + F + "_ingame_320x50",
-          "728x90_external": "/21682198607/external_" + F + "_display_ingame/external_" + F + "_ingame_728x90",
-          "300x250_external": "/21682198607/external_" + F + "_display_ingame/external_" + F + "_ingame_300x250",
-          "970x250_external": "/21682198607/external_" + F + "_display_ingame/external_" + F + "_ingame_970x250",
-          "160x600_external": "/21682198607/external_" + F + "_display_ingame/external_" + F + "_ingame_160x600",
-          "320x50_external": "/21682198607/external_" + F + "_display_ingame/external_" + F + "_ingame_320x50",
-        },
-        H = parseInt(_("site_id"), 10) || 0,
-        W = function (e) {
-          var t = x() || S() || E() ? ["video/mp4", "application/javascript"] : ["video/mp4", "video/webm", "video/ogg", "application/javascript"],
-            i = U(
-              U(
-                {
-                  mimes: t,
-                  minduration: 0,
-                  maxduration: 15,
-                  protocols: [2, 3, 5, 6, 7, 8],
-                  w: 640,
-                  h: 480,
-                  placement: 1,
-                  linearity: 1,
-                },
-                e
-                  ? {}
-                  : {
-                      skip: 1,
-                      skipafter: 5,
-                    }
-              ),
-              {
-                boxingallowed: 1,
-                pos: 1,
-                api: [2],
-              }
-            );
-          return {
-            bids: [
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: 13184250,
-                  supplyType: "web",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  delDomain: "poki-d.openx.net",
-                  unit: "540105196",
-                },
-              },
-              {
-                bidder: "spotx",
-                params: {
-                  channel_id: "265590",
-                  ad_unit: "instream",
-                  secure: !0,
-                  hide_skin: !0,
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "436284",
-                  video: U({}, i),
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: T(H),
-                  supplyType: "site",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                  ext: {
-                    override_maxduration: 3600,
-                    enforce_skip: !0,
-                  },
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "266914",
-                  zoneId: "1322034",
-                  position: "atf",
-                  video: {
-                    size_id: 204,
-                  },
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3607869@640x360",
-                },
-              },
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: 12906789,
-                },
-              },
-            ],
-            mediaTypes: {
-              video: U(
-                {
-                  context: "instream",
-                  playerSize: [640, 480],
-                },
-                i
-              ),
+        tracking: {
+            custom: "pokiTrackingCustom",
+            debugTrueInProduction: "pokiMessageDebugTrueProduction",
+            screen: {
+                gameplayStart: "pokiTrackingScreenGameplayStart",
+                gameplayStop: "pokiTrackingScreenGameplayStop",
+                gameLoadingFinished: "pokiTrackingScreenGameLoadingFinished",
+                commercialBreak: "pokiTrackingScreenCommercialBreak",
+                rewardedBreak: "pokiTrackingScreenRewardedBreak",
+                firstRound: "pokiTrackingScreenFirstRound",
+                displayAd: "pokiTrackingScreenDisplayAdRequest",
+                destroyAd: "pokiTrackingScreenDisplayAdDestroy",
+                playerActive: "pokiTrackingScreenPlayerActive"
             },
-          };
-        },
-        V = W(!0),
-        q = W(!1),
-        J = [
-          {
-            code: Z,
-            mediaTypes: q.mediaTypes,
-            bids: N([], q.bids, !0),
-          },
-          {
-            code: X,
-            mediaTypes: V.mediaTypes,
-            bids: N([], V.bids, !0),
-          },
-          {
-            code: K["728x90"],
-            mediaTypes: {
-              banner: {
-                sizes: [[728, 90]],
-              },
+            playtest: {
+                showModal: "pokiTrackingPlaytestShowModal",
+                accepted: "pokiTrackingPlaytestAccepted",
+                rejected: "pokiTrackingPlaytestRejected",
+                noCanvas: "pokiTrackingPlaytestNoCanvas",
+                notLoaded: "pokiTrackingPlaytestNotLoaded",
+                starting: "pokiTrackingPlaytestStarting",
+                closed: "pokiTrackingPlaytestClosed",
+                error: "pokiTrackingPlaytestError"
             },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "12940427",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "539859872",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "268177",
-                  size: [728, 90],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "1374895@728x90",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "80117",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "204596",
-                  zoneId: "1008080",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "1V6a2fgLvX",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["300x250"],
-            mediaTypes: {
-              banner: {
-                sizes: [[300, 250]],
-              },
+            playerfittest: {
+                starting: "pokiTrackingPlayerFitStarting"
             },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "12935252",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "539859873",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "268178",
-                  size: [300, 250],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "1374896@300x250",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "80118",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "204596",
-                  zoneId: "1008080",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "pKqNt5LyvF",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["970x250"],
-            mediaTypes: {
-              banner: {
-                sizes: [[970, 250]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20595278",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543540497",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "597527",
-                  size: [970, 250],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3344351@970x250",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "123738",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "yYyae7vnIh",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["160x600"],
-            mediaTypes: {
-              banner: {
-                sizes: [[160, 600]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "12940425",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "539859871",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "268175",
-                  size: [160, 600],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "1374893@160x600",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "80119",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "204596",
-                  zoneId: "1008080",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "rAEnPimPzC",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["320x50"],
-            mediaTypes: {
-              banner: {
-                sizes: [[320, 50]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20595224",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543540495",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "597529",
-                  size: [320, 50],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3344350@320x50",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "204596",
-                  zoneId: "1008080",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "123737",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "1DP5EtcOip",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["728x90_external"],
-            mediaTypes: {
-              banner: {
-                sizes: [[728, 90]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20973406",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543885656",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "268177",
-                  placementId: "625562",
-                  size: [728, 90],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3457872",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "132973",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  tag_id: "96373699",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "362566",
-                  zoneId: "1962680-2",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "1V6a2fgLvX",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["300x250_external"],
-            mediaTypes: {
-              banner: {
-                sizes: [[300, 250]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20973408",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543885657",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "625564",
-                  size: [300, 250],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3457874",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "132975",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  tag_id: "94f55c24",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "362566",
-                  zoneId: "1962680-15",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "pKqNt5LyvF",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["970x250_external"],
-            mediaTypes: {
-              banner: {
-                sizes: [[970, 250]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20973415",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543885650",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "625560",
-                  size: [970, 250],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3457879",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "132979",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  tag_id: "62235ccb",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "362566",
-                  zoneId: "1962680-57",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "yYyae7vnIh",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["160x600_external"],
-            mediaTypes: {
-              banner: {
-                sizes: [[160, 600]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20973407",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543885653",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "625563",
-                  size: [160, 600],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3457877",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "132974",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  tag_id: "9960183e",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "362566",
-                  zoneId: "1962680-9",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "rAEnPimPzC",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-          {
-            code: K["320x50_external"],
-            mediaTypes: {
-              banner: {
-                sizes: [[320, 50]],
-              },
-            },
-            bids: [
-              {
-                bidder: "districtm",
-                params: {
-                  placementId: "12906789",
-                },
-              },
-              {
-                bidder: "appnexus",
-                params: {
-                  placementId: "20973413",
-                },
-              },
-              {
-                bidder: "openx",
-                params: {
-                  unit: "543885649",
-                  delDomain: "poki-d.openx.net",
-                },
-              },
-              {
-                bidder: "ix",
-                params: {
-                  siteId: "625559",
-                  size: [320, 50],
-                },
-              },
-              {
-                bidder: "pubmatic",
-                params: {
-                  publisherId: "156838",
-                  adSlot: "3457875",
-                },
-              },
-              {
-                bidder: "conversant",
-                params: {
-                  site_id: "117477",
-                  tag_id: "402db827",
-                  secure: 1,
-                  position: 1,
-                },
-              },
-              {
-                bidder: "rubicon",
-                params: {
-                  accountId: "18608",
-                  siteId: "362566",
-                  zoneId: "1962680-43",
-                },
-              },
-              {
-                bidder: "emx_digital",
-                params: {
-                  tagid: "132978",
-                },
-              },
-              {
-                bidder: "onetag",
-                params: {
-                  pubId: "6da09f566a9dc06",
-                },
-              },
-              {
-                bidder: "richaudience",
-                params: {
-                  pid: 15 === H ? "MP_gIE1VDieUi" : "1DP5EtcOip",
-                  supplyType: "site",
-                },
-              },
-            ],
-          },
-        ],
-        Y = {
-          debug: !1,
-          enableSendAllBids: !0,
-          usePrebidCache: !0,
-          bidderTimeout: 1500,
-          priceGranularity: {
-            buckets: [
-              {
-                precision: 2,
-                min: 0.01,
-                max: 3,
-                increment: 0.01,
-              },
-              {
-                precision: 2,
-                min: 3,
-                max: 8,
-                increment: 0.05,
-              },
-              {
-                precision: 2,
-                min: 8,
-                max: 20,
-                increment: 0.5,
-              },
-              {
-                precision: 2,
-                min: 20,
-                max: 45,
-                increment: 1,
-              },
-            ],
-          },
-          currency: {
-            adServerCurrency: "EUR",
-            defaultRates: {
-              EUR: {
-                EUR: 1,
-                GBP: 0.86408,
-                USD: 1.2212,
-              },
-              GBP: {
-                EUR: 1.157300249976854,
-                GBP: 1,
-                USD: 1.4132950652717342,
-              },
-              USD: {
-                EUR: 0.8188666885031116,
-                GBP: 0.7075663282017687,
-                USD: 1,
-              },
-            },
-          },
-          cache: {
-            url: "https://prebid.adnxs.com/pbc/v1/cache",
-          },
-          targetingControls: {
-            allowTargetingKeys: ["BIDDER", "AD_ID", "PRICE_BUCKET", "SIZE", "DEAL", "SOURCE", "FORMAT", "UUID", "CACHE_ID", "CACHE_HOST", "ADOMAIN"],
-            allowSendAllBidsTargetingKeys: ["BIDDER", "AD_ID", "PRICE_BUCKET", "SIZE", "DEAL", "SOURCE", "FORMAT", "UUID", "CACHE_ID", "CACHE_HOST", "ADOMAIN"],
-          },
-          userSync: {
-            filterSettings: {
-              all: {
-                bidders: "*",
-                filter: "include",
-              },
-            },
-            syncsPerBidder: 1e3,
-            syncDelay: 100,
-            userIds: [
-              {
-                name: "pubCommonId",
-                storage: {
-                  type: "cookie",
-                  name: "poki_pubcid",
-                  expires: 180,
-                },
-              },
-            ],
-          },
-        },
-        $ = function (e, t) {
-          (window.pbjs = window.pbjs || {}),
-            (window.pbjs.que = window.pbjs.que || []),
-            window.pbjs.que.push(function () {
-              window.pbjs.aliasBidder("appnexus", "districtm");
-              var i = U(
-                U(
-                  {
-                    floors: {
-                      data: {
-                        currency: "EUR",
-                        schema: {
-                          fields: ["mediaType"],
-                        },
-                        values: {
-                          banner: R(t),
-                          video: L(t),
-                        },
-                      },
-                    },
-                  },
-                  Y
-                ),
-                e.config
-              );
-              window.pbjs.addAdUnits(
-                (function (e, t, i) {
-                  var n,
-                    r,
-                    a = t[(i = i.toUpperCase())];
-                  if (!a) return e;
-                  for (var o = Math.random(), s = 0; s <= e.length; s++)
-                    for (
-                      var d = e[s],
-                        A = a[(null === (n = null == d ? void 0 : d.mediaTypes) || void 0 === n ? void 0 : n.video) ? "video" : "display"] || {},
-                        c = (null === (r = null == d ? void 0 : d.bids) || void 0 === r ? void 0 : r.length) - 1;
-                      c >= 0;
-                      c--
-                    ) {
-                      var l = d.bids[c];
-                      A[l.bidder] && o > A[l.bidder] && e[s].bids.splice(c, 1);
-                    }
-                  return e;
-                })(e.adUnits || J, c, t)
-              ),
-                window.pbjs.setConfig(i),
-                (window.pbjs.bidderSettings = {
-                  districtm: {
-                    bidCpmAdjustment: function (e) {
-                      return 0.85 * e;
-                    },
-                  },
-                });
-            });
-        },
-        ee = !1,
-        te = function (e, t, i) {
-          (function (e, t) {
-            var i,
-              n,
-              r = null === (n = null === (i = e[(t = t.toUpperCase())]) || void 0 === i ? void 0 : i.video) || void 0 === n ? void 0 : n.amazon;
-            return !!r && Math.random() > r;
-          })(c, t) ||
-            (window.apstag &&
-              window.apstag.init(
-                e.settings ||
-                  U(
-                    {
-                      pubID: "e32f1423-28bc-43ed-8ab0-5ae6b4449cf8",
-                      adServer: "",
-                      videoAdServer: "GAM",
-                    },
-                    i
-                      ? {
-                          gdpr: {
-                            cmpTimeout: 1e4,
-                          },
-                        }
-                      : {}
-                  ),
-                function () {
-                  (ee = !0), e.callback && e.callback();
+            sdk: {
+                status: {
+                    initialized: "pokiTrackingSdkStatusInitialized",
+                    failed: "pokiTrackingSdkStatusFailed"
                 }
-              ));
-        },
-        ie = function () {
-          !(function () {
-            if (!window.__tcfapi) {
-              var e = window.top,
-                t = {};
-              (window.__tcfapi = function (i, n, r, a) {
-                var o = "" + Math.random(),
-                  s = {
-                    __tcfapiCall: {
-                      command: i,
-                      parameter: a,
-                      version: n,
-                      callId: o,
-                    },
-                  };
-                (t[o] = r), e.postMessage(s, "*");
-              }),
-                window.addEventListener(
-                  "message",
-                  function (e) {
-                    var i = {};
-                    try {
-                      i = "string" == typeof e.data ? JSON.parse(e.data) : e.data;
-                    } catch (e) {}
-                    var n = i.__tcfapiReturn;
-                    n && "function" == typeof t[n.callId] && (t[n.callId](n.returnValue, n.success), (t[n.callId] = null));
-                  },
-                  !1
-                );
-            }
-          })(),
-            window.pbjs.que.push(function () {
-              window.pbjs.setConfig({
-                consentManagement: {
-                  gdpr: {
-                    cmpApi: "iab",
-                    timeout: 8e3,
-                    defaultGdprScope: !0,
-                  },
+            },
+            ads: {
+                ay: {
+                    failed: "pokiTrackingAdsAYFailed"
                 },
-              });
-            });
-        },
-        ne = function () {
-          !(function () {
-            if (!window.__uspapi) {
-              var e = window.top,
-                t = {};
-              (window.__uspapi = function (i, n, r) {
-                var a = "" + Math.random(),
-                  o = {
-                    __uspapiCall: {
-                      command: i,
-                      version: n,
-                      callId: a,
-                    },
-                  };
-                (t[a] = r), e.postMessage(o, "*");
-              }),
-                window.addEventListener(
-                  "message",
-                  function (e) {
-                    var i = e && e.data && e.data.__uspapiReturn;
-                    i && i.callId && "function" == typeof t[i.callId] && (t[i.callId](i.returnValue, i.success), (t[i.callId] = null));
-                  },
-                  !1
-                );
-            }
-          })(),
-            window.pbjs.que.push(function () {
-              window.pbjs.setConfig({
-                consentManagement: {
-                  usp: {
-                    cmpApi: "iab",
-                    timeout: 8e3,
-                  },
+                status: {
+                    busy: "pokiTrackingAdsStatusBusy",
+                    completed: "pokiTrackingAdsStatusCompleted",
+                    error: "pokiTrackingAdsStatusError",
+                    impression: "pokiTrackingAdsStatusImpression",
+                    limit: "pokiTrackingAdsStatusLimit",
+                    ready: "pokiTrackingAdsStatusReady",
+                    requested: "pokiTrackingAdsStatusRequested",
+                    prebidRequested: "pokiTrackingAdsStatusPrebidRequested",
+                    skipped: "pokiTrackingAdsStatusSkipped",
+                    started: "pokiTrackingAdsStatusStarted",
+                    buffering: "pokiTrackingAdsStatusBuffering"
                 },
-              });
-            });
-        };
-
-      function re(e, t, i, r, a) {
-        var s = d(),
-          A = s ? "nope" : t;
-        if (window.pbjs && window.pbjs.que && window.pbjs.getConfig) {
-          var c,
-            l = I().split("?"),
-            p = encodeURIComponent(l[0]),
-            u = r ? X : Z,
-            h = o.getDataAnnotations(),
-            m = 1,
-            g = function () {
-              if (!(--m > 0))
-                try {
-                  o.dispatchEvent(n.ads.prebidRequested);
-                  var d = window.pbjs.adUnits.filter(function (e) {
-                    return e.code === u;
-                  })[0];
-                  if ("undefined" === d) return console.error("Video-ad-unit not found, did you give it the adunit.code='video' value?"), void e.requestAd(A);
-                  var l = window.pbjs.adServers.dfp.buildVideoUrl({
-                      adUnit: d,
-                      params: {
-                        iu: _("iu", t),
-                        sz: "640x360|640x480",
-                        output: "vast",
-                        cust_params: i,
-                        description_url: p,
-                      },
-                    }),
-                    g = window.pbjs.getHighestCpmBids(u);
-                  window.pbjs.markWinningBidAsUsed({
-                    adUnitCode: u,
-                  }),
-                    c && (l = l.replace("cust_params=", "cust_params=" + c + "%26"));
-                  var v = !1;
-                  if (s) {
-                    var f = void 0;
-                    if ((g.length > 0 && (f = g[0]), c)) {
-                      var b = (function (e) {
-                        var t = decodeURIComponent(e),
-                          i = _("amznbid", t);
-                        if (!i) return null;
-                        var n = j[i];
-                        return n
-                          ? {
-                              bid: n,
-                              vast: "https://aax.amazon-adsystem.com/e/dtb/vast?b=" + _("amzniid", t) + "&rnd=" + Math.round(1e10 * Math.random()) + "&pp=" + i,
-                            }
-                          : null;
-                      })(c);
-                      b &&
-                        (!f || !f.videoCacheKey || f.cpm < b.bid) &&
-                        (f = {
-                          cpm: b.bid,
-                          vast: b.vast,
-                          bidder: "amazon",
-                          videoCacheKey: "amazon",
-                        });
-                    }
-                    if ((!f || !f.videoCacheKey || f.cpm < L(a)) && (r || Math.random() > 0.5)) {
-                      var y = void 0;
-                      (y = (function (e) {
-                        return "US" === e ? 6.1 : B.includes(e) ? 0.5 : P.includes(e) ? 0.15 : D.includes(e) ? 0.08 : M.includes(e) ? 0.03 : 0.02;
-                      })(a)),
-                        (f = {
-                          cpm: 2 * y,
-                          vast: G(),
-                          bidder: "poki",
-                          videoCacheKey: "poki",
-                        });
-                    }
-                    if (!f || !f.videoCacheKey) return void o.dispatchEvent(n.ads.completed);
-                    switch (f.bidder) {
-                      case "onetag":
-                        l = "https://onetag-sys.com/invocation/?key=" + f.videoCacheKey;
-                        break;
-                      case "rubicon":
-                        l = "https://prebid-server.rubiconproject.com/cache?uuid=" + f.videoCacheKey;
-                        break;
-                      case "spotx":
-                        l = "https://search.spotxchange.com/ad/vast.html?key=" + f.videoCacheKey;
-                        break;
-                      case "amazon":
-                      case "poki":
-                        l = f.vast;
-                        break;
-                      default:
-                        l = "https://prebid.adnxs.com/pbc/v1/cache?uuid=" + f.videoCacheKey;
-                    }
-                    z({
-                      event: "video-ready",
-                      size: "640x360v",
-                      opportunityId: null == h ? void 0 : h.opportunityId,
-                      adUnitPath: null == h ? void 0 : h.adUnitPath,
-                      p4d_game_id: tt.gameId,
-                      p4d_version_id: tt.versionId,
-                      bidder: null == f ? void 0 : f.bidder,
-                      bid: null == f ? void 0 : f.cpm,
-                    }),
-                      (v = !0),
-                      o.setDataAnnotations({
-                        p4d_game_id: tt.gameId,
-                        p4d_version_id: tt.versionId,
-                        bidder: null == f ? void 0 : f.bidder,
-                        bid: null == f ? void 0 : f.cpm,
-                      });
-                  }
-                  if (
-                    (o.setDataAnnotations({
-                      vhbOnlyMode: v,
-                      adTagUrl: l,
-                    }),
-                    g.length > 0)
-                  ) {
-                    f = g[0];
-                    o.setDataAnnotations({
-                      prebidBidder: null == f ? void 0 : f.bidder,
-                      prebidBid: null == f ? void 0 : f.cpm,
-                    });
-                  } else
-                    o.setDataAnnotations({
-                      prebidBidder: void 0,
-                      prebidBid: void 0,
-                    });
-                  e.requestAd(l);
-                } catch (t) {
-                  e.requestAd(A);
-                }
-            };
-          ee &&
-            (m++,
-            window.apstag.fetchBids(
-              {
-                slots: [
-                  {
-                    slotID: r ? "Rewarded" : "Midroll",
-                    mediaType: "video",
-                  },
-                ],
-                timeout: Y.bidderTimeout,
-              },
-              function (e) {
-                e.length > 0 && (c = e[0].encodedQsParams), g();
-              }
-            )),
-            s &&
-              z({
-                event: "video-request",
-                size: "640x360v",
-                opportunityId: null == h ? void 0 : h.opportunityId,
-                adUnitPath: null == h ? void 0 : h.adUnitPath,
-                p4d_game_id: tt.gameId,
-                p4d_version_id: tt.versionId,
-              }),
-            window.pbjs.que.push(function () {
-              window.pbjs.requestBids({
-                adUnitCodes: [u],
-                bidsBackHandler: function () {
-                  g();
+                video: {
+                    clicked: "pokiTrackingAdsVideoClicked",
+                    error: "pokiTrackingAdsVideoError",
+                    loaderError: "pokiTrackingAdsVideoLoaderError",
+                    progress: "pokiTrackingAdsVideoProgress",
+                    paused: "pokiTrackingAdsVideoPaused",
+                    resumed: "pokiTrackingAdsVideoResumed",
+                    extendedVideoError: "pokiTrackingAdsVideoExtendedVideoError"
                 },
-              });
-            });
-        } else e.requestAd(A);
-      }
-      var ae = (function () {
-        function e(e, t) {
-          void 0 === t && (t = {}),
-            (this.retries = 0),
-            (this.running = !1),
-            (this.ima = e),
-            (this.siteID = t.siteID || 3),
-            (this.country = t.country || "ZZ"),
-            (this.totalRetries = t.totalRetries || l.waterfallRetries || 1),
-            (this.timing = t.timing || new u(l.adTiming)),
-            d() && (this.totalRetries = 1),
-            o.addEventListener(n.ads.video.error, this.moveThroughWaterfall.bind(this)),
-            o.addEventListener(n.ads.video.loaderError, this.moveThroughWaterfall.bind(this)),
-            o.addEventListener(n.ads.ready, this.timing.stopWaterfallTimer.bind(this.timing)),
-            o.addEventListener(n.ads.started, this.stopWaterfall.bind(this));
+                display: {
+                    requested: "pokiTrackingScreenDisplayAdRequested",
+                    impression: "pokiTrackingScreenDisplayAdImpression",
+                    notFilled: "pokiTrackingAdsDisplayNotFilled"
+                },
+                rewardedWeb: {
+                    request: "pokiTrackingRewardedWebRequest",
+                    ready: "pokiTrackingRewardedWebReady",
+                    impression: "pokiTrackingRewardedWebImpression",
+                    closedGranted: "pokiTrackingRewardedWebClosedGranted",
+                    closedDeclined: "pokiTrackingRewardedWebclosedDeclined",
+                    empty: "pokiTrackingRewardedWebEmpty"
+                },
+                debugging: "pokiTrackingAdsDebugging",
+                h5GamingEnabled: "pokiTrackingH5GamingEnabled"
+            }
+        },
+        accounts: {
+            openAuthPanel: "pokiAccountsOpenAuthPanel",
+            authPanelClosed: "pokiAccountsAuthPanelClosed",
+            getUserInfo: "pokiAccountsGetUserInfo",
+            getUserToken: "pokiAccountsGetUserToken",
+            userToken: "pokiAccountsUserToken",
+            userInfo: "pokiAccountsUserInfo"
         }
-        return (
-          (e.prototype.moveThroughWaterfall = function () {
-            if (!1 !== this.running) {
-              if ((this.timing.stopWaterfallTimer(), this.retries < this.totalRetries)) return this.timing.nextWaterfallTimer(), void this.requestAd();
-              (this.running = !1),
-                this.timing.resetWaterfallTimerIdx(),
-                o.dispatchEvent(n.ads.error, {
-                  message: "No ads",
-                });
-            }
-          }),
-          (e.prototype.cutOffWaterfall = function () {
-            this.ima.tearDown(), this.moveThroughWaterfall();
-          }),
-          (e.prototype.buildAdUnitPaths = function (e) {
-            if (r.debug) {
-              var t = "/21682198607/debug-video/";
-              return e === n.ads.position.rewarded ? [t + "debug-video-rewarded"] : e === n.ads.position.preroll ? [t + "debug-video-preroll"] : [t + "debug-video-midroll"];
-            }
-            var i = "desktop",
-              a = "midroll";
-            S() ? (i = "mobile") : E() && (i = "tablet"), e === n.ads.position.rewarded && (a = "rewarded");
-            var o = "/21682198607/";
-            return nt.GetIsPokiIFrame()
-              ? ["" + o + i + "_ingame_" + a + "_1/" + this.siteID + "_" + i + "_ingame_" + a + "_1", "" + o + i + "_ingame_" + a + "_2/" + this.siteID + "_" + i + "_ingame_" + a + "_2"]
-              : [o + "external_" + i + "_video_1/external_" + i + "_ingame_" + a + "_1", o + "external_" + i + "_video_2/external_" + i + "_ingame_" + a + "_2"];
-          }),
-          (e.prototype.start = function (e, t) {
-            void 0 === e && (e = {}),
-              (this.running = !0),
-              (this.retries = 0),
-              (this.criteria = e),
-              this.timing.resetWaterfallTimerIdx(),
-              (this.rewarded = t === n.ads.position.rewarded),
-              (this.adUnitPaths = this.buildAdUnitPaths(t)),
-              this.requestAd();
-          }),
-          (e.prototype.requestAd = function () {
-            this.timing.startWaterfallTimer(this.cutOffWaterfall.bind(this)), this.retries++, (this.criteria.waterfall = this.retries);
-            var e = (this.retries - 1) % this.adUnitPaths.length,
-              t = this.adUnitPaths[e],
-              i = "https://securepubads.g.doubleclick.net/gampad/ads?sz=640x360|640x480&iu=" + t + "&ciu_szs&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&url={url}&description_url={descriptionUrl}&correlator={timestamp}";
-            nt.consentString && nt.consentString.length > 0 && (this.criteria.consent_string = nt.consentString);
-            var r = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0) > 970;
-            this.criteria.billboards_fit = r ? "yes" : "no";
-            var a,
-              s,
-              A =
-                (function (e) {
-                  var t = I().split("?"),
-                    i = encodeURIComponent(t[0]);
-                  return (e = e.split("{descriptionUrl}").join(i)).split("{timestamp}").join(new Date().getTime().toString());
-                })(i) +
-                ((a = this.criteria),
-                (s = ""),
-                Object.keys(a).forEach(function (e) {
-                  if (Object.prototype.hasOwnProperty.call(a, e)) {
-                    var t = a[e];
-                    Array.isArray(t) && (t = t.join()), (s += e + "=" + t + "&");
-                  }
-                }),
-                "&cust_params=" + (s = encodeURIComponent(s)) + "&");
-            nt.childDirected && (A += "&tfcd=1"),
-              nt.nonPersonalized && (A += "&npa=1"),
-              o.setDataAnnotations({
-                adUnitPath: t,
-                adTagUrl: A,
-                waterfall: this.retries,
-              }),
-              o.dispatchEvent(n.ads.requested),
-              d() || (1 === this.retries && !S() && !E())
-                ? (console.debug("adRequest started with Prebid Video enabled"), re(this.ima, A, this.criteria, this.rewarded, this.country))
-                : (console.debug("adRequest started in plain mode"), this.ima.requestAd(A));
-          }),
-          (e.prototype.isRunning = function () {
-            return this.running;
-          }),
-          (e.prototype.stopWaterfall = function () {
-            (this.running = !1), this.timing.stopWaterfallTimer(), this.timing.resetWaterfallTimerIdx();
-          }),
-          e
-        );
-      })();
-      const oe = ae;
-      var se = "pokiSdkContainer",
-        de = "pokiSdkFixed",
-        Ae = "pokiSdkOverlay",
-        ce = "pokiSdkHidden",
-        le = "pokiSdkInsideContainer",
-        pe = "pokiSdkPauseButton",
-        ue = "pokiSdkPauseButtonBG",
-        he = "pokiSdkStartAdButton",
-        me = "pokiSdkProgressBar",
-        ge = "pokiSdkProgressContainer",
-        ve = "pokiSdkSpinnerContainer",
-        fe = "pokiSdkVideoContainer",
-        be = "pokiSdkVisible",
-        ye = "pokiSDKAdContainer";
-      var ke = function (e, t, i) {
-        if (i || 2 === arguments.length) for (var n, r = 0, a = t.length; r < a; r++) (!n && r in t) || (n || (n = Array.prototype.slice.call(t, 0, r)), (n[r] = t[r]));
-        return e.concat(n || Array.prototype.slice.call(t));
-      };
-      const we = (function () {
-        function e(e) {
-          var t = this;
-          if (
-            ((this.hideElement = function (e) {
-              e.classList.add(ce), e.classList.remove(be);
-            }),
-            (this.showElement = function (e) {
-              e.classList.add(be), e.classList.remove(ce);
-            }),
-            (this.wrapper = e.wrapper),
-            (this.progressFaker = new Ie(function (e) {
-              return t.updateProgressBar(e);
-            })),
-            this.progressFaker.queueFakeProgress(10, 1e3, n.ads.prebidRequested),
-            this.progressFaker.queueFakeProgress(20, 2e3, n.ads.started),
-            this.wrapper instanceof HTMLElement || (console.error("POKI-SDK: wrapper is not a HTMLElement, falling back to document.body"), (this.wrapper = document.body)),
-            this.createElements(),
-            "undefined" != typeof window && document)
-          ) {
-            var i = document.createElement("style");
-            (i.innerHTML =
-              "\n.pokiSdkContainer {\n\toverflow: hidden;\n\tposition: absolute;\n\tleft: 0;\n\ttop: 0;\n\twidth: 100%;\n\theight: 100%;\n\tz-index: 1000;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: center;\n}\n\n.pokiSdkContainer.pokiSdkFixed {\n\tposition: fixed;\n}\n\n.pokiSdkContainer.pokiSdkVisible {\n\tdisplay: block;\n}\n\n.pokiSdkContainer.pokiSdkHidden,\n.pokiSdkSpinnerContainer.pokiSdkHidden {\n\tdisplay: none;\n}\n\n.pokiSdkContainer.pokiSdkHidden,\n.pokiSdkSpinnerContainer {\n\tpointer-events: none;\n}\n\n.pokiSdkSpinnerContainer {\n\tz-index: 10;\n\tposition: absolute;\n\ttop: 0;\n\tleft: 0;\n\twidth: 100%;\n\theight: 100%;\n\tbackground: url('https://a.poki.com/images/thumb_anim_2x.gif') 50% 50% no-repeat;\n\tuser-select: none;\n}\n\n.pokiSdkInsideContainer {\n\tbackground: #000;\n\tposition: relative;\n\tz-index: 1;\n\twidth: 100%;\n\theight: 100%;\n\tdisplay: flex;\n\tflex-direction: column;\n\n\topacity: 0;\n\t-webkit-transition: opacity 0.5s ease-in-out;\n\t-moz-transition: opacity 0.5s ease-in-out;\n\t-ms-transition: opacity 0.5s ease-in-out;\n\t-o-transition: opacity 0.5s ease-in-out;\n\ttransition: opacity 0.5s ease-in-out;\n}\n\n.pokiSdkContainer.pokiSdkVisible .pokiSdkInsideContainer {\n\topacity: 1;\n}\n\n.pokiSDKAdContainer, .pokiSdkVideoContainer {\n\tposition: absolute;\n\twidth: 100%;\n\theight: 100%;\n}\n\n.pokiSdkStartAdButton {\n\tposition: absolute;\n\tz-index: 9999;\n\ttop: 0;\n\n\tpadding-top: 10%;\n\twidth: 100%;\n\theight: 100%;\n\ttext-align: center;\n\tcolor: #FFF;\n\n\tfont: 700 15pt 'Arial', sans-serif;\n\tfont-weight: bold;\n\tletter-spacing: 1px;\n\ttransition: 0.1s ease-in-out;\n\tline-height: 1em;\n}\n\n.pokiSdkPauseButton {\n\tcursor:pointer;\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    z-index: 1;\n}\n\n.pokiSdkPauseButton:before {\n\tcontent: '';\n\tposition: absolute;\n\twidth: 100px;\n\theight: 100px;\n\tdisplay: block;\n\tborder: 2px solid #fff;\n\tborder-radius: 50%;\n\tuser-select: none;\n\tbackground-color: rgba(0, 0, 0, 0.6);\n\ttransition: background-color 0.5s ease;\n\tanimation: 1s linear infinite pulse;\n}\n\n.pokiSdkPauseButton:after {\n\tcontent: '';\n\tposition: absolute;\n\tdisplay: block;\n\tbox-sizing: border-box;\n\tborder-color: transparent transparent transparent #fff;\n\tborder-style: solid;\n\tborder-width: 26px 0 26px 40px;\n\tpointer-events: none;\n\tanimation: 1s linear infinite pulse;\n\tleft: 6px;\n}\n.pokiSdkPauseButtonBG {\n    position: fixed;\n    top: 0;\n    left: 0;\n    display: block;\n    content: '';\n    background: rgba(0, 43, 80, 0.5);\n    width: 100%;\n    height: 100%;\n}\n\n.pokiSdkPauseButtonBG:hover{\n\tbackground: rgba(0, 43, 80, 0.7);\n}\n\n@keyframes pulse {\n\t0% {\n\t\ttransform: translate(-50%, -50%) scale(0.95);\n\t}\n\t70% {\n\t\ttransform: translate(-50%, -50%) scale(1.1);\n\t}\n\t100% {\n\t\ttransform: translate(-50%, -50%) scale(0.95);\n\t}\n}\n\n.pokiSdkProgressContainer {\n\tbackground: #B8C7DD;\n\twidth: 100%;\n\theight: 5px;\n\tposition: absolute;\n\tbottom: 0;\n\tz-index: 9999;\n}\n\n.pokiSdkProgressBar {\n\tposition:relative;\n\tbottom:0px;\n\tbackground: #FFDC00;\n\theight: 100%;\n\twidth: 0%;\n\ttransition: width 0.5s;\n\ttransition-timing-function: linear;\n}\n\n.pokiSdkProgressBar.pokiSdkVisible, .pokiSdkPauseButton.pokiSdkVisible, .pokiSdkStartAdButton.pokiSdkVisible {\n\tdisplay: block;\n\tpointer-events: auto;\n}\n\n.pokiSdkProgressBar.pokiSdkHidden, .pokiSdkPauseButton.pokiSdkHidden, .pokiSdkStartAdButton.pokiSdkHidden {\n\tdisplay: none;\n\tpointer-events: none;\n}\n"),
-              document.head.appendChild(i);
-          }
-        }
-        return (
-          (e.prototype.updateProgressBar = function (e) {
-            this.progressBar.style.width = e + "%";
-          }),
-          (e.prototype.setupEvents = function (e) {
-            this.internalSDK = e;
-          }),
-          (e.prototype.hide = function () {
-            this.hideElement(this.containerDiv),
-              this.hideElement(this.progressContainer),
-              this.hidePauseButton(),
-              this.hideElement(this.startAdButton),
-              this.containerDiv.classList.remove(Ae),
-              (this.progressBar.style.width = "0%"),
-              this.progressFaker.reset();
-          }),
-          (e.prototype.hideSpinner = function () {
-            this.hideElement(this.spinnerContainer);
-          }),
-          (e.prototype.show = function () {
-            this.containerDiv.classList.add(Ae), this.showElement(this.containerDiv), this.showElement(this.spinnerContainer), this.showElement(this.progressContainer), this.progressFaker.start();
-          }),
-          (e.prototype.getVideoBounds = function () {
-            return this.adContainer.getBoundingClientRect();
-          }),
-          (e.prototype.getAdContainer = function () {
-            return this.adContainer;
-          }),
-          (e.prototype.getVideoContainer = function () {
-            return this.videoContainer;
-          }),
-          (e.prototype.showPauseButton = function () {
-            this.showElement(this.pauseButton), this.internalSDK && this.pauseButton.addEventListener("click", this.internalSDK.resumeAd.bind(this.internalSDK));
-          }),
-          (e.prototype.hidePauseButton = function () {
-            this.hideElement(this.pauseButton), this.internalSDK && this.pauseButton.removeEventListener("click", this.internalSDK.resumeAd.bind(this.internalSDK));
-          }),
-          (e.prototype.showStartAdButton = function () {
-            this.showElement(this.startAdButton), this.internalSDK && this.startAdButton.addEventListener("click", this.internalSDK.startAdClicked.bind(this.internalSDK));
-          }),
-          (e.prototype.hideStartAdButton = function () {
-            this.hideElement(this.startAdButton), this.internalSDK && this.startAdButton.removeEventListener("click", this.internalSDK.startAdClicked.bind(this.internalSDK));
-          }),
-          (e.prototype.createElements = function () {
-            if (
-              ((this.containerDiv = document.createElement("div")),
-              (this.insideContainer = document.createElement("div")),
-              (this.pauseButton = document.createElement("div")),
-              (this.pauseButtonBG = document.createElement("div")),
-              (this.startAdButton = document.createElement("div")),
-              (this.progressBar = document.createElement("div")),
-              (this.progressContainer = document.createElement("div")),
-              (this.spinnerContainer = document.createElement("div")),
-              (this.adContainer = document.createElement("div")),
-              (this.videoContainer = document.createElement("video")),
-              (this.adContainer.id = "pokiSDKAdContainer"),
-              (this.videoContainer.id = "pokiSDKVideoContainer"),
-              (this.containerDiv.className = se),
-              (this.insideContainer.className = le),
-              (this.pauseButton.className = pe),
-              (this.pauseButtonBG.className = ue),
-              this.pauseButton.appendChild(this.pauseButtonBG),
-              (this.startAdButton.className = he),
-              (this.startAdButton.innerHTML = "Tap anywhere to play ad"),
-              (this.progressBar.className = me),
-              (this.progressContainer.className = ge),
-              (this.spinnerContainer.className = ve),
-              (this.adContainer.className = ye),
-              (this.videoContainer.className = fe),
-              this.hide(),
-              this.videoContainer.setAttribute("playsinline", "playsinline"),
-              this.videoContainer.setAttribute("muted", "muted"),
-              this.containerDiv.appendChild(this.insideContainer),
-              this.containerDiv.appendChild(this.spinnerContainer),
-              this.insideContainer.appendChild(this.progressContainer),
-              this.insideContainer.appendChild(this.videoContainer),
-              this.insideContainer.appendChild(this.adContainer),
-              this.containerDiv.appendChild(this.pauseButton),
-              this.containerDiv.appendChild(this.startAdButton),
-              this.progressContainer.appendChild(this.progressBar),
-              this.wrapper.appendChild(this.containerDiv),
-              this.wrapper === document.body)
-            )
-              this.containerDiv.classList.add(de);
-            else {
-              var e = window.getComputedStyle(this.wrapper).position;
-              (e && -1 !== ["absolute", "fixed", "relative"].indexOf(e)) || (this.wrapper.style.position = "relative");
-            }
-          }),
-          e
-        );
-      })();
-      var Ie = (function () {
-          function e(e) {
-            var t = this;
-            (this.storedQueue = []),
-              (this.progressCallback = e),
-              this.reset(),
-              o.addEventListener(n.ads.video.progress, function (e) {
-                var i = 100 - t.currentProgress,
-                  n = (e.currentTime / e.duration) * i;
-                n < i && t.progressCallback(t.currentProgress + n);
-              }),
-              this.initializeNoProgressFix();
-          }
-          return (
-            (e.prototype.queueFakeProgress = function (e, t, i) {
-              var n = this;
-              this.storedQueue.push({
-                progressToFake: e,
-                duration: t,
-                stopEvent: i,
-              }),
-                o.addEventListener(i, function () {
-                  (n.eventWatcher[i] = !0), (n.currentProgress = n.startProgress + e), (n.startProgress = n.currentProgress), n.progressCallback(n.currentProgress), n.activeQueue.shift(), n.activeQueue.length > 0 ? n.continue() : n.pause();
-                });
-            }),
-            (e.prototype.fakeProgress = function (e, t, i) {
-              this.activeQueue.push({
-                progressToFake: e,
-                duration: t,
-                stopEvent: i,
-              }),
-                (this.fakeProgressEvents = !0),
-                this.continue();
-            }),
-            (e.prototype.start = function () {
-              this.activeQueue.length > 0 || ((this.activeQueue = ke([], this.storedQueue, !0)), (this.active = !0), this.continue());
-            }),
-            (e.prototype.continue = function () {
-              if (this.activeQueue.length > 0 && !this.tickInterval) {
-                this.startTime = Date.now();
-                (this.tickInterval = window.setInterval(this.tick.bind(this), 50)), (this.active = !0);
-              }
-            }),
-            (e.prototype.pause = function () {
-              this.clearInterval();
-            }),
-            (e.prototype.tick = function () {
-              var e = this.activeQueue[0],
-                t = Date.now() - this.startTime,
-                i = Math.min(t / e.duration, 1);
-              (this.currentProgress = this.startProgress + e.progressToFake * i),
-                this.fakeProgressEvents &&
-                  o.dispatchEvent(n.ads.video.progress, {
-                    duration: e.duration / 1e3,
-                    currentTime: t / 1e3,
-                  }),
-                this.progressCallback(this.currentProgress),
-                (this.eventWatcher[e.stopEvent] || 1 === i) && this.pause();
-            }),
-            (e.prototype.clearInterval = function () {
-              this.tickInterval && (clearInterval(this.tickInterval), (this.tickInterval = 0));
-            }),
-            (e.prototype.initializeNoProgressFix = function () {
-              var e = this;
-              o.addEventListener(n.ads.started, function (t) {
-                e.progressWatcherTimeout = window.setTimeout(function () {
-                  if (e.active) {
-                    var i = 100 - e.currentProgress,
-                      r = 1e3 * t.duration - 1e3;
-                    e.fakeProgress(i, r, n.ads.completed);
-                  }
-                }, 1e3);
-              }),
-                o.addEventListener(n.ads.video.progress, function () {
-                  e.progressWatcherTimeout && (clearTimeout(e.progressWatcherTimeout), (e.progressWatcherTimeout = 0));
-                });
-            }),
-            (e.prototype.reset = function () {
-              (this.eventWatcher = {}), (this.startProgress = 0), (this.startTime = 0), (this.currentProgress = 0), (this.activeQueue = []), (this.active = !1), (this.fakeProgressEvents = !1), this.clearInterval();
-            }),
-            e
-          );
-        })(),
-        Se = !0,
-        Ee = {};
+    };
+    var t = 15552e3;
 
-      function _e() {
-        if (document.body && document.body.appendChild) {
-          var e = document.createElement("iframe");
-          if (
-            ((e.style.display = "none"),
-            document.body.appendChild(e),
-            e.contentWindow &&
-              ((window.pokiKeysChanged = new Map()),
-              e.contentWindow.document.open(),
-              e.contentWindow.document.write(
-                "<script>\nconst lsKey = 'poki_lsexpire';\nconst lifetime = 1000*60*60*24*30*6;\n\nwindow.addEventListener('storage', function(event) {\n\ttry {\n\t\tconst key = event.key;\n\n\t\t// key is null when localStorage.clear() is called.\n\t\tif (key === null) {\n\t\t\tlocalStorage.removeItem(lsKey);\n\t\t\treturn;\n\t\t}\n\n\t\tif (key === lsKey) return;\n\n\t\tconst updates = JSON.parse(localStorage.getItem(lsKey)) || {};\n\n\t\t// newValue is null when localStorage.removeItem() is called.\n\t\tif (event.newValue === null) {\n\t\t\tdelete updates[key];\n\n\t\t\t// window.parent is the game itself. This code is executed in\n\t\t\t// an iframe without src which makes it the same context as it's parent\n\t\t\t// which makes it save to access the parent's properties.\n\t\t\twindow.parent.pokiKeysChanged.set(key, 'remove');\n\t\t} else {\n\t\t\tupdates[key] = Date.now();\n\t\t\twindow.parent.pokiKeysChanged.set(key, 'set');\n\t\t}\n\t\tlocalStorage.setItem(lsKey, JSON.stringify(updates));\n\t} catch (e) {}\n});\n\nfunction expire() {\n\tconst updates = JSON.parse(localStorage.getItem(lsKey)) || {};\n\tconst expireBefore = Date.now() - lifetime;\n\tvar removed = false;\n\n\tObject.keys(updates).map(function(key) {\n\t\tif (updates[key] < expireBefore) {\n\t\t\tlocalStorage.removeItem(key);\n\t\t\tdelete updates[key];\n\t\t\tremoved = true;\n\t\t}\n\t});\n\n\tif (removed) {\n\t\tlocalStorage.setItem(lsKey, JSON.stringify(updates));\n\t}\n}\n\ntry {\n\texpire();\n} catch (e) {}\n</script>"
-              ),
-              e.contentWindow.document.close(),
-              !window.location.hostname.endsWith("poki-gdn.com") && tt.gameId))
-          ) {
-            var t = document.createElement("iframe");
-            (t.style.display = "none"),
-              (t.src = "https://" + tt.gameId + ".poki-gdn.com/poki-savegame-store.html"),
-              (t.onload = function () {
-                if (
-                  (setInterval(function () {
-                    var e = [];
-                    window.pokiKeysChanged.forEach(function (t, i) {
-                      "set" === t ? e.push([t, i, localStorage.getItem(i)]) : e.push([t, i]);
-                    }),
-                      e.length > 0 &&
-                        (t.contentWindow &&
-                          t.contentWindow.postMessage(
-                            {
-                              type: "store",
-                              data: e,
-                            },
-                            "*"
-                          ),
-                        window.pokiKeysChanged.clear());
-                  }, 1e3),
-                  !localStorage.getItem("pokiMigrated"))
-                ) {
-                  for (var e = [], i = 0; i < localStorage.length; i++) {
-                    var n = localStorage.key(i);
-                    e.push(["set", n, localStorage.getItem(n)]);
-                  }
-                  e.length > 0 &&
-                    t.contentWindow &&
-                    t.contentWindow.postMessage(
-                      {
-                        type: "store",
-                        data: e,
-                      },
-                      "*"
-                    ),
-                    localStorage.setItem("pokiMigrated", "1");
-                }
-              }),
-              document.body.appendChild(t);
-          }
-        } else document.addEventListener("DOMContentLoaded", _e);
-      }
-      var xe = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO"],
-        Ce = ["US"],
-        Te = ["ZZ"];
+    function n(e) {
+        var t = new RegExp("".concat(e, "=([^;]+)(?:;|$)")).exec(document.cookie);
+        return t ? t[1] : ""
+    }
 
-      function Be(e) {
-        return xe.includes(e);
-      }
+    function o(e, n, o) {
+        document.cookie = "".concat(e, "=").concat(n, "; path=/; samesite=lax; max-age=").concat(Math.min(o || t, t))
+    }
 
-      function Pe(e) {
-        return Te.includes(e);
-      }
-      var De = function (e, t, i, n) {
-          return new (i || (i = Promise))(function (r, a) {
-            function o(e) {
-              try {
-                d(n.next(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function s(e) {
-              try {
-                d(n.throw(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function d(e) {
-              var t;
-              e.done
-                ? r(e.value)
-                : ((t = e.value),
-                  t instanceof i
-                    ? t
-                    : new i(function (e) {
-                        e(t);
-                      })).then(o, s);
-            }
-            d((n = n.apply(e, t || [])).next());
-          });
-        },
-        Me = function (e, t) {
-          var i,
-            n,
-            r,
-            a,
-            o = {
-              label: 0,
-              sent: function () {
-                if (1 & r[0]) throw r[1];
-                return r[1];
-              },
-              trys: [],
-              ops: [],
-            };
-          return (
-            (a = {
-              next: s(0),
-              throw: s(1),
-              return: s(2),
-            }),
-            "function" == typeof Symbol &&
-              (a[Symbol.iterator] = function () {
-                return this;
-              }),
-            a
-          );
-
-          function s(a) {
-            return function (s) {
-              return (function (a) {
-                if (i) throw new TypeError("Generator is already executing.");
-                for (; o; )
-                  try {
-                    if (((i = 1), n && (r = 2 & a[0] ? n.return : a[0] ? n.throw || ((r = n.return) && r.call(n), 0) : n.next) && !(r = r.call(n, a[1])).done)) return r;
-                    switch (((n = 0), r && (a = [2 & a[0], r.value]), a[0])) {
-                      case 0:
-                      case 1:
-                        r = a;
-                        break;
-                      case 4:
-                        return (
-                          o.label++,
-                          {
-                            value: a[1],
-                            done: !1,
-                          }
-                        );
-                      case 5:
-                        o.label++, (n = a[1]), (a = [0]);
-                        continue;
-                      case 7:
-                        (a = o.ops.pop()), o.trys.pop();
-                        continue;
-                      default:
-                        if (!((r = o.trys), (r = r.length > 0 && r[r.length - 1]) || (6 !== a[0] && 2 !== a[0]))) {
-                          o = 0;
-                          continue;
-                        }
-                        if (3 === a[0] && (!r || (a[1] > r[0] && a[1] < r[3]))) {
-                          o.label = a[1];
-                          break;
-                        }
-                        if (6 === a[0] && o.label < r[1]) {
-                          (o.label = r[1]), (r = a);
-                          break;
-                        }
-                        if (r && o.label < r[2]) {
-                          (o.label = r[2]), o.ops.push(a);
-                          break;
-                        }
-                        r[2] && o.ops.pop(), o.trys.pop();
-                        continue;
-                    }
-                    a = t.call(e, o);
-                  } catch (e) {
-                    (a = [6, e]), (n = 0);
-                  } finally {
-                    i = r = 0;
-                  }
-                if (5 & a[0]) throw a[1];
-                return {
-                  value: a[0] ? a[1] : void 0,
-                  done: !0,
-                };
-              })([a, s]);
-            };
-          }
-        };
-      const Re = (function () {
-        function e(e) {
-          var t = this;
-          (this.bannerTimeout = null),
-            (this.allowedToPlayAd = !1),
-            (this.runningAd = !1),
-            (this.currentWidth = 640),
-            (this.currentHeight = 480),
-            (this.currentRequestIsMuted = !1),
-            (this.volume = 1),
-            (this.canWeAutoPlayWithSound = function () {
-              return De(t, void 0, void 0, function () {
-                return Me(this, function (e) {
-                  switch (e.label) {
-                    case 0:
-                      if (!this.blankVideo) return [2, !1];
-                      e.label = 1;
-                    case 1:
-                      return e.trys.push([1, 3, , 4]), [4, this.blankVideo.play()];
-                    case 2:
-                      return e.sent(), [2, !0];
-                    case 3:
-                      return e.sent(), [2, !1];
-                    case 4:
-                      return [2];
-                  }
-                });
-              });
-            }),
-            (this.videoElement = document.getElementById("pokiSDKVideoContainer")),
-            (this.adsManager = null),
-            (this.volume = e),
-            this.initAdDisplayContainer(),
-            this.initBlankVideo(),
-            this.initAdsLoader();
-        }
-        return (
-          (e.prototype.initAdDisplayContainer = function () {}),
-          (e.prototype.initBlankVideo = function () {
-            (this.blankVideo = document.createElement("video")), this.blankVideo.setAttribute("playsinline", "playsinline");
-            var e = document.createElement("source");
-            (e.src =
-              "data:video/mp4;base64, AAAAHGZ0eXBNNFYgAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAAGF21kYXTeBAAAbGliZmFhYyAxLjI4AABCAJMgBDIARwAAArEGBf//rdxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNDIgcjIgOTU2YzhkOCAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMTQgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz02IGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCB2YnZfbWF4cmF0ZT03NjggdmJ2X2J1ZnNpemU9MzAwMCBjcmZfbWF4PTAuMCBuYWxfaHJkPW5vbmUgZmlsbGVyPTAgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAAFZliIQL8mKAAKvMnJycnJycnJycnXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXiEASZACGQAjgCEASZACGQAjgAAAAAdBmjgX4GSAIQBJkAIZACOAAAAAB0GaVAX4GSAhAEmQAhkAI4AhAEmQAhkAI4AAAAAGQZpgL8DJIQBJkAIZACOAIQBJkAIZACOAAAAABkGagC/AySEASZACGQAjgAAAAAZBmqAvwMkhAEmQAhkAI4AhAEmQAhkAI4AAAAAGQZrAL8DJIQBJkAIZACOAAAAABkGa4C/AySEASZACGQAjgCEASZACGQAjgAAAAAZBmwAvwMkhAEmQAhkAI4AAAAAGQZsgL8DJIQBJkAIZACOAIQBJkAIZACOAAAAABkGbQC/AySEASZACGQAjgCEASZACGQAjgAAAAAZBm2AvwMkhAEmQAhkAI4AAAAAGQZuAL8DJIQBJkAIZACOAIQBJkAIZACOAAAAABkGboC/AySEASZACGQAjgAAAAAZBm8AvwMkhAEmQAhkAI4AhAEmQAhkAI4AAAAAGQZvgL8DJIQBJkAIZACOAAAAABkGaAC/AySEASZACGQAjgCEASZACGQAjgAAAAAZBmiAvwMkhAEmQAhkAI4AhAEmQAhkAI4AAAAAGQZpAL8DJIQBJkAIZACOAAAAABkGaYC/AySEASZACGQAjgCEASZACGQAjgAAAAAZBmoAvwMkhAEmQAhkAI4AAAAAGQZqgL8DJIQBJkAIZACOAIQBJkAIZACOAAAAABkGawC/AySEASZACGQAjgAAAAAZBmuAvwMkhAEmQAhkAI4AhAEmQAhkAI4AAAAAGQZsAL8DJIQBJkAIZACOAAAAABkGbIC/AySEASZACGQAjgCEASZACGQAjgAAAAAZBm0AvwMkhAEmQAhkAI4AhAEmQAhkAI4AAAAAGQZtgL8DJIQBJkAIZACOAAAAABkGbgCvAySEASZACGQAjgCEASZACGQAjgAAAAAZBm6AnwMkhAEmQAhkAI4AhAEmQAhkAI4AhAEmQAhkAI4AhAEmQAhkAI4AAAAhubW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAABDcAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAzB0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+kAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAALAAAACQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPpAAAAAAABAAAAAAKobWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAB1MAAAdU5VxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAACU21pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAhNzdGJsAAAAr3N0c2QAAAAAAAAAAQAAAJ9hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAALAAkABIAAAASAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGP//AAAALWF2Y0MBQsAN/+EAFWdCwA3ZAsTsBEAAAPpAADqYA8UKkgEABWjLg8sgAAAAHHV1aWRraEDyXyRPxbo5pRvPAyPzAAAAAAAAABhzdHRzAAAAAAAAAAEAAAAeAAAD6QAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAAIxzdHN6AAAAAAAAAAAAAAAeAAADDwAAAAsAAAALAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAACgAAAAoAAAAKAAAAiHN0Y28AAAAAAAAAHgAAAEYAAANnAAADewAAA5gAAAO0AAADxwAAA+MAAAP2AAAEEgAABCUAAARBAAAEXQAABHAAAASMAAAEnwAABLsAAATOAAAE6gAABQYAAAUZAAAFNQAABUgAAAVkAAAFdwAABZMAAAWmAAAFwgAABd4AAAXxAAAGDQAABGh0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAACAAAAAAAABDcAAAAAAAAAAAAAAAEBAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAQkAAADcAABAAAAAAPgbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAC7gAAAykBVxAAAAAAALWhkbHIAAAAAAAAAAHNvdW4AAAAAAAAAAAAAAABTb3VuZEhhbmRsZXIAAAADi21pbmYAAAAQc21oZAAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAADT3N0YmwAAABnc3RzZAAAAAAAAAABAAAAV21wNGEAAAAAAAAAAQAAAAAAAAAAAAIAEAAAAAC7gAAAAAAAM2VzZHMAAAAAA4CAgCIAAgAEgICAFEAVBbjYAAu4AAAADcoFgICAAhGQBoCAgAECAAAAIHN0dHMAAAAAAAAAAgAAADIAAAQAAAAAAQAAAkAAAAFUc3RzYwAAAAAAAAAbAAAAAQAAAAEAAAABAAAAAgAAAAIAAAABAAAAAwAAAAEAAAABAAAABAAAAAIAAAABAAAABgAAAAEAAAABAAAABwAAAAIAAAABAAAACAAAAAEAAAABAAAACQAAAAIAAAABAAAACgAAAAEAAAABAAAACwAAAAIAAAABAAAADQAAAAEAAAABAAAADgAAAAIAAAABAAAADwAAAAEAAAABAAAAEAAAAAIAAAABAAAAEQAAAAEAAAABAAAAEgAAAAIAAAABAAAAFAAAAAEAAAABAAAAFQAAAAIAAAABAAAAFgAAAAEAAAABAAAAFwAAAAIAAAABAAAAGAAAAAEAAAABAAAAGQAAAAIAAAABAAAAGgAAAAEAAAABAAAAGwAAAAIAAAABAAAAHQAAAAEAAAABAAAAHgAAAAIAAAABAAAAHwAAAAQAAAABAAAA4HN0c3oAAAAAAAAAAAAAADMAAAAaAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAACMc3RjbwAAAAAAAAAfAAAALAAAA1UAAANyAAADhgAAA6IAAAO+AAAD0QAAA+0AAAQAAAAEHAAABC8AAARLAAAEZwAABHoAAASWAAAEqQAABMUAAATYAAAE9AAABRAAAAUjAAAFPwAABVIAAAVuAAAFgQAABZ0AAAWwAAAFzAAABegAAAX7AAAGFwAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNTUuMzMuMTAw"),
-              this.blankVideo.appendChild(e);
-          }),
-          (e.prototype.initAdsLoader = function () {
-            var e = this;
-            this.adsLoader ||
-              (window.google &&
-                ((this.adsLoader = new google.ima.AdsLoader(this.adDisplayContainer)),
-                this.adsLoader.getSettings().setVpaidMode(google.ima.ImaSdkSettings.VpaidMode.INSECURE),
-                this.adsLoader.getSettings().setDisableCustomPlaybackForIOS10Plus(!0),
-                this.adsLoader.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, this.onAdsManagerLoaded, !1, this),
-                this.adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, this.onAdLoaderError, !1, this),
-                this.videoElement.addEventListener("onended", function () {
-                  return e.adsLoader.contentComplete();
-                })));
-          }),
-          (e.prototype.requestAd = function (e) {
-            return De(this, void 0, void 0, function () {
-              var t;
-              return Me(this, function (i) {
-                switch (i.label) {
-                  case 0:
-                    return this.runningAd
-                      ? [2]
-                      : ((this.runningAd = !0),
-                        this.adDisplayContainer.initialize(),
-                        (this.videoElement.src = ""),
-                        ((t = new google.ima.AdsRequest()).adTagUrl = e),
-                        (t.linearAdSlotWidth = this.currentWidth),
-                        (t.linearAdSlotHeight = this.currentHeight),
-                        (t.nonLinearAdSlotWidth = this.currentWidth),
-                        (t.nonLinearAdSlotHeight = this.currentHeight),
-                        (t.forceNonLinearFullSlot = !0),
-                        [4, this.canWeAutoPlayWithSound()]);
-                  case 1:
-                    return i.sent() ? (t.setAdWillPlayMuted(!1), (this.currentRequestIsMuted = !1)) : (t.setAdWillPlayMuted(!0), (this.currentRequestIsMuted = !0)), (this.allowedToPlayAd = !0), this.adsLoader.requestAds(t), [2];
-                }
-              });
-            });
-          }),
-          (e.prototype.resize = function (e, t, i) {
-            void 0 === i && (i = google.ima.ViewMode.NORMAL), (this.currentWidth = e), (this.currentHeight = t), this.adsManager && this.adsManager.resize(e, t, i);
-          }),
-          (e.prototype.onAdsManagerLoaded = function (e) {
-            var t = new google.ima.AdsRenderingSettings();
-            (t.enablePreloading = !0),
-              (t.restoreCustomPlaybackStateOnAdBreakComplete = !0),
-              (t.mimeTypes = x() || S() || E() ? ["video/mp4"] : ["video/mp4", "video/webm", "video/ogg"]),
-              (t.loadVideoTimeout = 8e3),
-              (this.adsManager = e.getAdsManager(this.videoElement, t)),
-              this.adsManager.setVolume(Math.max(0, Math.min(1, this.volume))),
-              this.currentRequestIsMuted && this.adsManager.setVolume(0),
-              this.allowedToPlayAd ? (this.attachAdEvents(), o.dispatchEvent(n.ads.ready)) : this.tearDown();
-          }),
-          (e.prototype.setVolume = function (e) {
-            (this.volume = e), this.adsManager && this.adsManager.setVolume(Math.max(0, Math.min(1, this.volume)));
-          }),
-          (e.prototype.startPlayback = function () {
-            try {
-              this.adsManager.init(this.currentWidth, this.currentHeight, google.ima.ViewMode.NORMAL), this.adsManager.start();
-            } catch (e) {
-              this.videoElement.play();
-            }
-          }),
-          (e.prototype.startIOSPlayback = function () {
-            this.adsManager.start();
-          }),
-          (e.prototype.stopPlayback = function () {
-            o.dispatchEvent(n.ads.stopped), this.tearDown();
-          }),
-          (e.prototype.resumeAd = function () {
-            o.dispatchEvent(n.ads.video.resumed), this.adsManager && this.adsManager.resume();
-          }),
-          (e.prototype.tearDown = function () {
-            this.adsManager && (this.adsManager.stop(), this.adsManager.destroy(), (this.adsManager = null)),
-              null !== this.bannerTimeout && (clearTimeout(this.bannerTimeout), (this.bannerTimeout = null)),
-              this.adsLoader && (this.adsLoader.contentComplete(), this.adsLoader.destroy(), (this.adsLoader = null), this.initAdsLoader()),
-              (this.runningAd = !1);
-          }),
-          (e.prototype.attachAdEvents = function () {
-            var e = this,
-              t = google.ima.AdEvent.Type;
-            this.adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, this.onAdError, !1, this),
-              [t.AD_PROGRESS, t.ALL_ADS_COMPLETED, t.CLICK, t.COMPLETE, t.IMPRESSION, t.PAUSED, t.SKIPPED, t.STARTED, t.USER_CLOSE, t.AD_BUFFERING].forEach(function (t) {
-                e.adsManager.addEventListener(t, e.onAdEvent, !1, e);
-              });
-          }),
-          (e.prototype.onAdEvent = function (e) {
-            var t = this,
-              i = e.getAd();
-            switch (e.type) {
-              case google.ima.AdEvent.Type.AD_PROGRESS:
-                o.dispatchEvent(n.ads.video.progress, e.getAdData());
-                break;
-              case google.ima.AdEvent.Type.STARTED:
-                (e.remainingTime = this.adsManager.getRemainingTime()),
-                  e.remainingTime <= 0 && (e.remainingTime = 15),
-                  i.isLinear() ||
-                    (this.bannerTimeout = window.setTimeout(function () {
-                      o.dispatchEvent(n.ads.completed, {
-                        rewardAllowed: !!e.rewardAllowed,
-                      }),
-                        t.tearDown();
-                    }, 1e3 * (e.remainingTime + 1))),
-                  o.setDataAnnotations({
-                    creativeId: i.getCreativeId(),
-                  }),
-                  o.dispatchEvent(n.ads.started, {
-                    duration: i.getDuration(),
-                  });
-                break;
-              case google.ima.AdEvent.Type.COMPLETE:
-                o.dispatchEvent(n.ads.completed, {
-                  rewardAllowed: !0,
-                }),
-                  this.tearDown();
-                break;
-              case google.ima.AdEvent.Type.ALL_ADS_COMPLETED:
-              case google.ima.AdEvent.Type.USER_CLOSE:
-                this.tearDown();
-                break;
-              case google.ima.AdEvent.Type.PAUSED:
-                this.adsManager.pause(), o.dispatchEvent(n.ads.video.paused);
-                break;
-              case google.ima.AdEvent.Type.AD_BUFFERING:
-                o.dispatchEvent(n.ads.video.buffering);
-                break;
-              case google.ima.AdEvent.Type.CLICK:
-                o.dispatchEvent(n.ads.video.clicked);
-                break;
-              case google.ima.AdEvent.Type.SKIPPED:
-                o.dispatchEvent(n.ads.skipped),
-                  o.dispatchEvent(n.ads.completed, {
-                    rewardAllowed: !0,
-                  }),
-                  document.activeElement && document.activeElement.blur();
-                break;
-              case google.ima.AdEvent.Type.IMPRESSION:
-                o.dispatchEvent(n.ads.impression);
-            }
-          }),
-          (e.prototype.onAdLoaderError = function (e) {
-            this.tearDown();
-            var t = (e.getError && e.getError().toString()) || "Unknown";
-            o.dispatchEvent(n.ads.video.loaderError, {
-              message: t,
-            });
-          }),
-          (e.prototype.onAdError = function (e) {
-            this.tearDown();
-            var t = (e.getError && e.getError().toString()) || "Unknown";
-            o.dispatchEvent(n.ads.video.error, {
-              message: t,
-            });
-          }),
-          (e.prototype.muteAd = function () {
-            void 0 !== this.adsManager && null != this.adsManager && this.adsManager.setVolume(0);
-          }),
-          (e.prototype.isAdRunning = function () {
-            return this.runningAd;
-          }),
-          e
-        );
-      })();
-      const Le = function (e) {
-        return new Promise(function (t, i) {
-          var n = document.createElement("script");
-          (n.type = "text/javascript"), (n.async = !0), (n.src = e);
-          var r = function () {
-            (n.readyState && "loaded" !== n.readyState && "complete" !== n.readyState) || (t(), (n.onload = null), (n.onreadystatechange = null));
-          };
-          (n.onload = r), (n.onreadystatechange = r), (n.onerror = i), document.head.appendChild(n);
-        });
-      };
-      var ze = function (e, t, i, n) {
-          return new (i || (i = Promise))(function (r, a) {
-            function o(e) {
-              try {
-                d(n.next(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function s(e) {
-              try {
-                d(n.throw(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function d(e) {
-              var t;
-              e.done
-                ? r(e.value)
-                : ((t = e.value),
-                  t instanceof i
-                    ? t
-                    : new i(function (e) {
-                        e(t);
-                      })).then(o, s);
-            }
-            d((n = n.apply(e, t || [])).next());
-          });
-        },
-        Oe = function (e, t) {
-          var i,
-            n,
-            r,
-            a,
-            o = {
-              label: 0,
-              sent: function () {
-                if (1 & r[0]) throw r[1];
-                return r[1];
-              },
-              trys: [],
-              ops: [],
-            };
-          return (
-            (a = {
-              next: s(0),
-              throw: s(1),
-              return: s(2),
-            }),
-            "function" == typeof Symbol &&
-              (a[Symbol.iterator] = function () {
-                return this;
-              }),
-            a
-          );
-
-          function s(a) {
-            return function (s) {
-              return (function (a) {
-                if (i) throw new TypeError("Generator is already executing.");
-                for (; o; )
-                  try {
-                    if (((i = 1), n && (r = 2 & a[0] ? n.return : a[0] ? n.throw || ((r = n.return) && r.call(n), 0) : n.next) && !(r = r.call(n, a[1])).done)) return r;
-                    switch (((n = 0), r && (a = [2 & a[0], r.value]), a[0])) {
-                      case 0:
-                      case 1:
-                        r = a;
-                        break;
-                      case 4:
-                        return (
-                          o.label++,
-                          {
-                            value: a[1],
-                            done: !1,
-                          }
-                        );
-                      case 5:
-                        o.label++, (n = a[1]), (a = [0]);
-                        continue;
-                      case 7:
-                        (a = o.ops.pop()), o.trys.pop();
-                        continue;
-                      default:
-                        if (!((r = o.trys), (r = r.length > 0 && r[r.length - 1]) || (6 !== a[0] && 2 !== a[0]))) {
-                          o = 0;
-                          continue;
-                        }
-                        if (3 === a[0] && (!r || (a[1] > r[0] && a[1] < r[3]))) {
-                          o.label = a[1];
-                          break;
-                        }
-                        if (6 === a[0] && o.label < r[1]) {
-                          (o.label = r[1]), (r = a);
-                          break;
-                        }
-                        if (r && o.label < r[2]) {
-                          (o.label = r[2]), o.ops.push(a);
-                          break;
-                        }
-                        r[2] && o.ops.pop(), o.trys.pop();
-                        continue;
-                    }
-                    a = t.call(e, o);
-                  } catch (e) {
-                    (a = [6, e]), (n = 0);
-                  } finally {
-                    i = r = 0;
-                  }
-                if (5 & a[0]) throw a[1];
-                return {
-                  value: a[0] ? a[1] : void 0,
-                  done: !0,
-                };
-              })([a, s]);
-            };
-          }
-        };
-      const Ge = function () {};
-      var je = function (e, t, i, n) {
-          return new (i || (i = Promise))(function (r, a) {
-            function o(e) {
-              try {
-                d(n.next(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function s(e) {
-              try {
-                d(n.throw(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function d(e) {
-              var t;
-              e.done
-                ? r(e.value)
-                : ((t = e.value),
-                  t instanceof i
-                    ? t
-                    : new i(function (e) {
-                        e(t);
-                      })).then(o, s);
-            }
-            d((n = n.apply(e, t || [])).next());
-          });
-        },
-        Ue = function (e, t) {
-          var i,
-            n,
-            r,
-            a,
-            o = {
-              label: 0,
-              sent: function () {
-                if (1 & r[0]) throw r[1];
-                return r[1];
-              },
-              trys: [],
-              ops: [],
-            };
-          return (
-            (a = {
-              next: s(0),
-              throw: s(1),
-              return: s(2),
-            }),
-            "function" == typeof Symbol &&
-              (a[Symbol.iterator] = function () {
-                return this;
-              }),
-            a
-          );
-
-          function s(a) {
-            return function (s) {
-              return (function (a) {
-                if (i) throw new TypeError("Generator is already executing.");
-                for (; o; )
-                  try {
-                    if (((i = 1), n && (r = 2 & a[0] ? n.return : a[0] ? n.throw || ((r = n.return) && r.call(n), 0) : n.next) && !(r = r.call(n, a[1])).done)) return r;
-                    switch (((n = 0), r && (a = [2 & a[0], r.value]), a[0])) {
-                      case 0:
-                      case 1:
-                        r = a;
-                        break;
-                      case 4:
-                        return (
-                          o.label++,
-                          {
-                            value: a[1],
-                            done: !1,
-                          }
-                        );
-                      case 5:
-                        o.label++, (n = a[1]), (a = [0]);
-                        continue;
-                      case 7:
-                        (a = o.ops.pop()), o.trys.pop();
-                        continue;
-                      default:
-                        if (!((r = o.trys), (r = r.length > 0 && r[r.length - 1]) || (6 !== a[0] && 2 !== a[0]))) {
-                          o = 0;
-                          continue;
-                        }
-                        if (3 === a[0] && (!r || (a[1] > r[0] && a[1] < r[3]))) {
-                          o.label = a[1];
-                          break;
-                        }
-                        if (6 === a[0] && o.label < r[1]) {
-                          (o.label = r[1]), (r = a);
-                          break;
-                        }
-                        if (r && o.label < r[2]) {
-                          (o.label = r[2]), o.ops.push(a);
-                          break;
-                        }
-                        r[2] && o.ops.pop(), o.trys.pop();
-                        continue;
-                    }
-                    a = t.call(e, o);
-                  } catch (e) {
-                    (a = [6, e]), (n = 0);
-                  } finally {
-                    i = r = 0;
-                  }
-                if (5 & a[0]) throw a[1];
-                return {
-                  value: a[0] ? a[1] : void 0,
-                  done: !0,
-                };
-              })([a, s]);
-            };
-          }
-        };
-
-      function Ne() {}
-      var Qe = function (e, t, i, n) {
-          return new (i || (i = Promise))(function (r, a) {
-            function o(e) {
-              try {
-                d(n.next(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function s(e) {
-              try {
-                d(n.throw(e));
-              } catch (e) {
-                a(e);
-              }
-            }
-
-            function d(e) {
-              var t;
-              e.done
-                ? r(e.value)
-                : ((t = e.value),
-                  t instanceof i
-                    ? t
-                    : new i(function (e) {
-                        e(t);
-                      })).then(o, s);
-            }
-            d((n = n.apply(e, t || [])).next());
-          });
-        },
-        Fe = function (e, t) {
-          var i,
-            n,
-            r,
-            a,
-            o = {
-              label: 0,
-              sent: function () {
-                if (1 & r[0]) throw r[1];
-                return r[1];
-              },
-              trys: [],
-              ops: [],
-            };
-          return (
-            (a = {
-              next: s(0),
-              throw: s(1),
-              return: s(2),
-            }),
-            "function" == typeof Symbol &&
-              (a[Symbol.iterator] = function () {
-                return this;
-              }),
-            a
-          );
-
-          function s(a) {
-            return function (s) {
-              return (function (a) {
-                if (i) throw new TypeError("Generator is already executing.");
-                for (; o; )
-                  try {
-                    if (((i = 1), n && (r = 2 & a[0] ? n.return : a[0] ? n.throw || ((r = n.return) && r.call(n), 0) : n.next) && !(r = r.call(n, a[1])).done)) return r;
-                    switch (((n = 0), r && (a = [2 & a[0], r.value]), a[0])) {
-                      case 0:
-                      case 1:
-                        r = a;
-                        break;
-                      case 4:
-                        return (
-                          o.label++,
-                          {
-                            value: a[1],
-                            done: !1,
-                          }
-                        );
-                      case 5:
-                        o.label++, (n = a[1]), (a = [0]);
-                        continue;
-                      case 7:
-                        (a = o.ops.pop()), o.trys.pop();
-                        continue;
-                      default:
-                        if (!((r = o.trys), (r = r.length > 0 && r[r.length - 1]) || (6 !== a[0] && 2 !== a[0]))) {
-                          o = 0;
-                          continue;
-                        }
-                        if (3 === a[0] && (!r || (a[1] > r[0] && a[1] < r[3]))) {
-                          o.label = a[1];
-                          break;
-                        }
-                        if (6 === a[0] && o.label < r[1]) {
-                          (o.label = r[1]), (r = a);
-                          break;
-                        }
-                        if (r && o.label < r[2]) {
-                          (o.label = r[2]), o.ops.push(a);
-                          break;
-                        }
-                        r[2] && o.ops.pop(), o.trys.pop();
-                        continue;
-                    }
-                    a = t.call(e, o);
-                  } catch (e) {
-                    (a = [6, e]), (n = 0);
-                  } finally {
-                    i = r = 0;
-                  }
-                if (5 & a[0]) throw a[1];
-                return {
-                  value: a[0] ? a[1] : void 0,
-                  done: !0,
-                };
-              })([a, s]);
-            };
-          }
-        },
-        Xe = !1,
-        Ze = function () {
-          return Qe(void 0, void 0, void 0, function () {
-            var e, t, i;
-            return Fe(this, function (n) {
-              switch (n.label) {
-                case 0:
-                  if (Xe) return [2];
-                  n.label = 1;
-                case 1:
-                  return n.trys.push([1, 4, , 5]), [4, fetch("./touchControllerConfig.json")];
-                case 2:
-                  return [4, n.sent().json()];
-                case 3:
-                  return (
-                    (e = n.sent()) &&
-                      (((t = document.createElement("script")).src = "//game-cdn.poki.com/scripts/touchOverlayController.js"),
-                      (t.onload = function () {
-                        new window.OverlayController(document.body, e);
-                      }),
-                      document.head.appendChild(t),
-                      (Xe = !0)),
-                    [3, 5]
-                  );
-                case 4:
-                  return (i = n.sent()), console.log(i), [3, 5];
-                case 5:
-                  return [2];
-              }
-            });
-          });
-        };
-      const Ke = function () {
-        for (var e = Math.floor(Date.now() / 1e3), t = "", i = 0; i < 4; i++) (t = String.fromCharCode(255 & e) + t), (e >>= 8);
+    function r() {
+        for (var e = Math.floor(Date.now() / 1e3), t = "", n = 0; n < 4; n++) t = String.fromCharCode(255 & e) + t, e >>= 8;
         if (window.crypto && crypto.getRandomValues && Uint32Array) {
-          var n = new Uint32Array(12);
-          crypto.getRandomValues(n);
-          for (i = 0; i < 12; i++) t += String.fromCharCode(255 & n[i]);
-        } else for (i = 0; i < 12; i++) t += String.fromCharCode(Math.floor(256 * Math.random()));
-        return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-      };
-      var He = (function () {
-        function e() {
-          this.slotMap = new Map();
-        }
-        return (
-          (e.prototype.waitUntilReady = function (e) {
-            window.pbjs.que.push(function () {
-              e();
-            });
-          }),
-          (e.prototype.setupSlotRenderEndedListener = function () {
-            var e = this;
-            this.waitUntilReady(function () {
-              window.googletag.pubads().addEventListener("slotRenderEnded", function (t) {}), window.googletag.pubads().addEventListener("impressionViewable", function (t) {});
-            });
-          }),
-          (e.prototype.validateDisplaySettings = function (e) {
-            return !!(S() || E() || ["970x250", "300x250", "728x90", "160x600", "320x50"].includes(e)) && !((S() || E()) && !["320x50"].includes(e));
-          }),
-          (e.prototype.getDisplaySlotConfig = function (e) {
-            var t = e.split("x").map(function (e) {
-                return parseInt(e, 10);
-              }),
-              i = "/21682198607/debug-display/debug-display-" + e,
-              n = "desktop";
-            S() && (n = "mobile"), E() && (n = "tablet");
-            var a = parseInt(_("site_id"), 10) || 0;
-            return (
-              r.debug || (i = nt.GetIsPokiIFrame() ? "/21682198607/" + n + "_ingame_" + e + "/" + a + "_" + n + "_ingame_" + e : "/21682198607/external_" + n + "_display_ingame/external_" + n + "_ingame_" + e),
-              {
-                id: "poki-" + Ke(),
-                adUnitPath: i,
-                size: e,
-                width: t[0],
-                height: t[1],
-                refresh: !1,
-              }
-            );
-          }),
-          (e.prototype.renderIGDAd = function (e, t, i, n, r) {
-            var a = this,
-              o = this.getIGDSlotID(e);
-            o && this.slotMap.get(o) && (console.error("displayAd called with a container that already contains an ad"), this.clearIGDAd(e));
-            var s = this.getDisplaySlotConfig(t);
-            this.slotMap.set(s.id, s), (s.opportunityId = n), (s.duringGameplayFn = r);
-            var d = document.createElement("div");
-            (d.style.width = s.width + "px"),
-              (d.style.height = s.height + "px"),
-              e.appendChild(d),
-              e.setAttribute("data-poki-ad-id", s.id),
-              (s.intersectionObserver = new window.IntersectionObserver(
-                function (t) {
-                  var r;
-                  t[0].isIntersecting &&
-                    (null === (r = s.intersectionObserver) || void 0 === r || r.disconnect(),
-                    a.waitUntilReady(function () {
-                      var t = a.slotMap.get(s.id);
-                      if (t && t.opportunityId === n) {
-                        (d.style.background = "#CCC"),
-                          (d.innerHTML = "<p>ADVERTISEMENT</p>"),
-                          (d.style.display = "flex"),
-                          (d.style.justifyContent = "center"),
-                          (d.style.alignItems = "center"),
-                          (d.style.position = "absolute"),
-                          (d.style.zIndex = "1"),
-                          (d.style.fontFamily = "Helvetica"),
-                          (d.style.fontSize = "16px"),
-                          (d.style.color = "#888"),
-                          (d.style.pointerEvents = "none");
-                        var r = document.createElement("div");
-                        (r.id = s.id),
-                          (r.className = "poki-ad-slot"),
-                          (r.style.width = s.width + "px"),
-                          (r.style.height = s.height + "px"),
-                          (r.style.position = "relative"),
-                          (r.style.zIndex = "2"),
-                          r.setAttribute("data-poki-ad-size", s.size),
-                          e.appendChild(r),
-                          a.setupGPT(s, i),
-                          a.requestAd(s);
-                      }
-                    }));
+            var o = new Uint32Array(12);
+            crypto.getRandomValues(o);
+            for (var r = 0; r < 12; r++) t += String.fromCharCode(255 & o[r])
+        } else
+            for (var i = 0; i < 12; i++) t += String.fromCharCode(Math.floor(256 * Math.random()));
+        return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+    }
+
+    function i(e, t, n) {
+        console.error(e);
+        var o = [{
+            k: "where",
+            v: t
+        }, {
+            k: "error",
+            v: e.name && e.message ? "".concat(e.name, ": ").concat(e.message) : JSON.stringify(e)
+        }];
+        if (void 0 !== n) {
+            var r = n;
+            "string" != typeof e && (r = JSON.stringify(e)), o.push({
+                k: "extra",
+                v: r
+            })
+        }! function(e, t) {
+            fetch(e, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain"
                 },
-                {
-                  threshold: 1,
-                }
-              )),
-              s.intersectionObserver.observe(d);
-          }),
-          (e.prototype.setupGPT = function (e, t) {
-            var i;
-            (e.gptSlot = window.googletag.defineSlot(e.adUnitPath, [e.width, e.height], e.id).addService(window.googletag.pubads())),
-              window.googletag.enableServices(),
-              null === (i = e.gptSlot) || void 0 === i || i.clearTargeting(),
-              Object.keys(t).forEach(function (i) {
-                var n;
-                null === (n = e.gptSlot) || void 0 === n || n.setTargeting(i, t[i]);
-              });
-          }),
-          (e.prototype.requestAd = function (e) {
-            var t,
-              i = this;
-            dt.track(n.tracking.ads.display.requested, {
-              size: e.size,
-              opportunityId: e.opportunityId,
-              adUnitPath: e.adUnitPath,
-              refresh: e.refresh,
-              duringGameplay: null === (t = e.duringGameplayFn) || void 0 === t ? void 0 : t.call(e),
-            }),
-              window.pbjs.requestBids({
-                adUnitCodes: [e.adUnitPath],
-                bidsBackHandler: function () {
-                  i.bidsBackHandler(e.id);
-                },
-              });
-          }),
-          (e.prototype.clearIGDAd = function (e) {
-            var t,
-              i = this.getIGDSlotID(e);
-            if (i) {
-              var r = this.slotMap.get(i) || null;
-              if (r) {
-                for (
-                  dt.track(n.tracking.screen.destroyAd, {
-                    opportunityId: r.opportunityId,
-                  }),
-                    null === (t = r.intersectionObserver) || void 0 === t || t.disconnect(),
-                    r.gptSlot && googletag.destroySlots([r.gptSlot]);
-                  e.lastChild;
-
-                )
-                  e.removeChild(e.lastChild);
-                e.removeAttribute("data-poki-ad-id"), this.slotMap.delete(r.id);
-              }
-            } else console.error("destroyAd called on a container without ad");
-          }),
-          (e.prototype.getIGDSlotID = function (e) {
-            if (!e) return null;
-            var t = e.getAttribute("data-poki-ad-id");
-            return t || null;
-          }),
-          (e.prototype.bidsBackHandler = function (e) {
-            var t = this.slotMap.get(e);
-            t && t.gptSlot && (window.pbjs.setTargetingForGPTAsync([t.adUnitPath]), (t.adserverTargeting = window.pbjs.getAdserverTargetingForAdUnitCode([t.adUnitPath])), window.googletag.display(t.id));
-          }),
-          e
-        );
-      })();
-      const We = He;
-      var Ve,
-        qe =
-          ((Ve = function (e, t) {
-            return (
-              (Ve =
-                Object.setPrototypeOf ||
-                ({
-                  __proto__: [],
-                } instanceof Array &&
-                  function (e, t) {
-                    e.__proto__ = t;
-                  }) ||
-                function (e, t) {
-                  for (var i in t) Object.prototype.hasOwnProperty.call(t, i) && (e[i] = t[i]);
-                }),
-              Ve(e, t)
-            );
-          }),
-          function (e, t) {
-            if ("function" != typeof t && null !== t) throw new TypeError("Class extends value " + String(t) + " is not a constructor or null");
-
-            function i() {
-              this.constructor = e;
-            }
-            Ve(e, t), (e.prototype = null === t ? Object.create(t) : ((i.prototype = t.prototype), new i()));
-          }),
-        Je = (function (e) {
-          function t() {
-            return (null !== e && e.apply(this, arguments)) || this;
-          }
-          return (
-            qe(t, e),
-            (t.prototype.waitUntilReady = function (e) {
-              window.pbjs.que.push(function () {
-                e();
-              });
-            }),
-            (t.prototype.requestAd = function (t) {
-              z({
-                event: "request",
-                size: t.size,
-                opportunityId: t.opportunityId,
-                adUnitPath: t.adUnitPath,
-                p4d_game_id: tt.gameId,
-                p4d_version_id: tt.versionId,
-              }),
-                e.prototype.requestAd.call(this, t);
-            }),
-            (t.prototype.bidsBackHandler = function (e) {
-              var t,
-                i,
-                r = this.slotMap.get(e);
-              if (r) {
-                var a = document.createElement("iframe");
-                a.setAttribute("frameborder", "0"),
-                  a.setAttribute("scrolling", "no"),
-                  a.setAttribute("marginheight", "0"),
-                  a.setAttribute("marginwidth", "0"),
-                  a.setAttribute("topmargin", "0"),
-                  a.setAttribute("leftmargin", "0"),
-                  a.setAttribute("allowtransparency", "true"),
-                  a.setAttribute("width", "" + r.width),
-                  a.setAttribute("height", "" + r.height);
-                var o = document.getElementById(r.id);
-                if (o) {
-                  o.appendChild(a);
-                  var s = null === (t = null == a ? void 0 : a.contentWindow) || void 0 === t ? void 0 : t.document;
-                  if (!s) return console.error("IGD error - iframe injection for ad failed", e), void this.clearIGDAd(o.parentNode);
-                  if (((r.adserverTargeting = window.pbjs.getAdserverTargetingForAdUnitCode([r.adUnitPath])), !r.adserverTargeting.hb_adid))
-                    return console.error("IGD info - nothing to render", e, r.adserverTargeting), void this.clearIGDAd(o.parentNode);
-                  var d = r.adserverTargeting.hb_bidder,
-                    A = parseFloat(r.adserverTargeting.hb_pb);
-                  isNaN(A) && (A = 0),
-                    window.pbjs.renderAd(s, r.adserverTargeting.hb_adid),
-                    dt.track(n.tracking.ads.display.impression, {
-                      size: r.size,
-                      opportunityId: r.opportunityId,
-                      duringGameplay: null === (i = r.duringGameplayFn) || void 0 === i ? void 0 : i.call(r),
-                      adUnitPath: r.adUnitPath,
-                      prebidBid: A,
-                      prebidBidder: d,
-                      preBidWon: !0,
-                      dfpIsBackfill: !1,
-                      dfpLineItemId: void 0,
-                      dfpCampaignId: void 0,
-                    }),
-                    z({
-                      event: "impression",
-                      size: r.size,
-                      opportunityId: r.opportunityId,
-                      adUnitPath: r.adUnitPath,
-                      p4d_game_id: tt.gameId,
-                      p4d_version_id: tt.versionId,
-                      bidder: d,
-                      bid: A,
-                    }),
-                    (r.intersectionObserver = new IntersectionObserver(
-                      function (e) {
-                        e.forEach(function (e) {
-                          e.isIntersecting
-                            ? r.intersectingTimer ||
-                              (r.intersectingTimer = setTimeout(function () {
-                                var t, i;
-                                null === (t = r.intersectionObserver) || void 0 === t || t.unobserve(e.target),
-                                  dt.track(n.tracking.ads.display.viewable, {
-                                    size: r.size,
-                                    opportunityId: r.opportunityId,
-                                    duringGameplay: null === (i = r.duringGameplayFn) || void 0 === i ? void 0 : i.call(r),
-                                    adUnitPath: r.adUnitPath,
-                                  }),
-                                  z({
-                                    event: "viewable",
-                                    size: r.size,
-                                    opportunityId: r.opportunityId,
-                                    adUnitPath: r.adUnitPath,
-                                    p4d_game_id: tt.gameId,
-                                    p4d_version_id: tt.versionId,
-                                    bidder: d,
-                                    bid: A,
-                                  });
-                              }, 1e3))
-                            : r.intersectingTimer && (clearTimeout(r.intersectingTimer), (r.intersectingTimer = void 0));
-                        });
-                      },
-                      {
-                        threshold: 0.5,
-                      }
-                    )),
-                    r.intersectionObserver.observe(o);
-                } else console.error("IGD error - container not found", e);
-              }
-            }),
-            (t.prototype.setupGPT = function (e, t) {}),
-            (t.prototype.setupSlotRenderEndedListener = function () {}),
-            t
-          );
-        })(We);
-      const Ye = Je;
-      var $e = function () {
-          return (
-            ($e =
-              Object.assign ||
-              function (e) {
-                for (var t, i = 1, n = arguments.length; i < n; i++) for (var r in (t = arguments[i])) Object.prototype.hasOwnProperty.call(t, r) && (e[r] = t[r]);
-                return e;
-              }),
-            $e.apply(this, arguments)
-          );
-        },
-        et = function (e, t, i) {
-          if (i || 2 === arguments.length) for (var n, r = 0, a = t.length; r < a; r++) (!n && r in t) || (n || (n = Array.prototype.slice.call(t, 0, r)), (n[r] = t[r]));
-          return e.concat(n || Array.prototype.slice.call(t));
-        },
-        tt = {
-          gameId: _("game_id"),
-          versionId: _("game_version_id"),
-        },
-        it = (function () {
-          function e() {
-            (this.autoStartOnReady = !1),
-              (this.criteria = {}),
-              (this.debugIsOverwritten = !1),
-              (this.handlers = {}),
-              (this.initializingPromise = null),
-              (this.isInitialized = !1),
-              (this.programmaticAdsEnabled = !0),
-              (this.sdkBooted = !1),
-              (this.sdkImaError = !1),
-              (this.startAdEnabled = !1),
-              (this.startStartAdsAfterTimerOnInit = !1),
-              (this.initOptions = {}),
-              (this.forceDisableCommercialBreak = !1),
-              (this.installedTCFv2 = !1),
-              (this.installedUSP = !1),
-              (this.isBot = !1),
-              (this.adReady = !1),
-              (this.debugTouchOverlayController = !1),
-              (this.setPlayerAge = function (e) {
-                e &&
-                  (function (e, t) {
-                    if (Se)
-                      try {
-                        localStorage.setItem(e, t);
-                      } catch (i) {
-                        (Se = !1), (Ee[e] = t);
-                      }
-                    else Ee[e] = t;
-                  })("playerAge", e);
-              }),
-              (this.toggleNonPersonalized = function (t) {
-                e.nonPersonalized = t;
-              }),
-              (this.setConsentString = function (t) {
-                e.consentString = t;
-              }),
-              (this.setLogging = function (e) {
-                r.log = e;
-              }),
-              (this.sdkNotBootedButCalled = function () {
-                console.error("The Poki SDK has not yet been initialized");
-              }),
-              d() ? (this.IGD = new Ye()) : (this.IGD = new We());
-            var t = _("pokiDebug");
-            "" !== t && (this.setDebug("true" === t), (this.debugIsOverwritten = !0)), "" !== _("pokiLogging") && this.setLogging(!0);
-          }
-          return (
-            (e.prototype.init = function (e) {
-              if ((void 0 === e && (e = {}), "undefined" != typeof window)) {
-                var t = e.onReady,
-                  i = void 0 === t ? null : t,
-                  n = e.onAdblocked,
-                  r = void 0 === n ? null : n;
-                return (
-                  (this.initOptions = e),
-                  i && this.registerHandler("onReady", i),
-                  r && this.registerHandler("onAdblocked", r),
-                  this.isInitialized ? console.error("Poki SDK has already been initialized") : (this.initializingPromise || (this.initializingPromise = this.lazyLoadInit()), this.initializingPromise)
-                );
-              }
-            }),
-            (e.prototype.lazyLoadInit = function () {
-              var t = this,
-                i = this.initOptions,
-                a = i.debug,
-                s = void 0 !== a && a,
-                d = i.prebid,
-                A = void 0 === d ? {} : d,
-                c = i.a9,
-                p = void 0 === c ? {} : c,
-                u = i.volume,
-                h = void 0 === u ? 1 : u,
-                m = i.waterfallRetries,
-                g = i.wrapper,
-                v = void 0 === g ? document.body : g,
-                f = parseInt(_("site_id"), 10) || 0;
-              (this.isBot = "1" === _("bot") || {}), this.setupDefaultEvents(), dt.setupDefaultEvents(), e.GetIsPokiIFrame() && _e(), setTimeout(w.trackSavegames, 1e4);
-              var b = $e({}, l),
-                y = Ge;
-              r.debug &&
-                (y = function () {
-                  return Promise.resolve();
-                });
-              var k = Ne,
-                I = _("ccpaApplies"),
-                x = this.initOptions.country || _("country"),
-                C = void 0 !== this.initOptions.isCCPA ? this.initOptions.isCCPA : "" !== I ? "1" === I : void 0;
-              x &&
-                void 0 !== C &&
-                (k = function () {
-                  return Promise.resolve({
-                    ISO: x,
-                    ccpaApplies: C,
-                  });
-                });
-              var T = !1;
-              x && ($(A, x), (T = !0)),
-                window.addEventListener("resize", this.resize.bind(this), !1),
-                window.addEventListener("message", this.onMessage.bind(this), !1),
-                this.debugIsOverwritten || this.setDebug(r.debug || s),
-                this.debugTouchOverlayController && (S() || E()) && Ze();
-              var B = [y(), k()],
-                P = et([], B, !0);
-              this.isBot || P.push(Le(""));
-              var D = function (e, i, a) {
-                if ((void 0 === a && (a = !0), (t.country = x || (null == i ? void 0 : i.ISO) || "zz"), (t.isCCPA = void 0 === C ? (null == i ? void 0 : i.ccpaApplies) || !1 : C), e)) {
-                  tt.gameId || (tt.gameId = e.gameId);
-                  [""].includes(tt.gameId) && (S() || E()) && Ze(),
-                    (b.adTiming = e.adTiming),
-                    (b.customCriteria = $e($e({}, b.customCriteria), {
-                      p4d_game_id: tt.gameId,
-                    }));
-                }
-                Be(t.country) &&
-                  !r.debug &&
-                  (ie(),
-                  console.debug("GDPR - waiting for __tcfapi callback"),
-                  window.__tcfapi("ping", 2, function () {
-                    console.debug("GDPR - __tcfapi callback received"), (t.installedTCFv2 = !0), a && o.dispatchEvent(n.ready);
-                  }),
-                  setTimeout(function () {
-                    t.installedTCFv2 || (console.error("GDPR - No __tcfapi callback after 2s, verify implementation!"), a && o.dispatchEvent(n.ready));
-                  }, 2e3)),
-                  t.isCCPA &&
-                    !r.debug &&
-                    (ne(),
-                    console.debug("USPrivacy - waiting for __uspapi callback"),
-                    window.__uspapi("uspPing", 1, function () {
-                      console.debug("USPrivacy - __uspapi callback received"), (t.installedUSP = !0), a && o.dispatchEvent(n.ready);
-                    }),
-                    setTimeout(function () {
-                      t.installedUSP || (console.error("USPrivacy - No __uspapi callback after 2s, verify implementation!"), a && o.dispatchEvent(n.ready));
-                    }, 2e3));
-              };
-              return Promise.all(P)
-                .catch(function () {
-                  Promise.all(B).then(function (e) {
-                    var t = e[0],
-                      i = e[1];
-                    D(t, i, !1);
-                  }),
-                    o.dispatchEvent(n.adblocked);
-                })
-                .then(function (e) {
-                  if (void 0 !== e) {
-                    var i = e[0],
-                      a = e[1];
-                    D(i, a),
-                      T || $(A, t.country),
-                      r.debug && (b.adTiming.startAdsAfter = 0),
-                      t.enableSettings(b),
-                      (t.playerSkin = new we({
-                        wrapper: v,
-                      })),
-                      (t.ima = new Re(h)),
-                      t.playerSkin.setupEvents(t),
-                      t.startStartAdsAfterTimerOnInit && t.adTimings.startStartAdsAfterTimer(),
-                      (t.waterfall = new oe(t.ima, {
-                        timing: t.adTimings,
-                        totalRetries: m,
-                        siteID: f,
-                        country: t.country,
-                      })),
-                      t.IGD.setupSlotRenderEndedListener();
-                    var s = Be(t.country);
-                    te(p, t.country, s), (t.isInitialized = !0), t.isCCPA || s || o.dispatchEvent(n.ready), r.debug && o.dispatchEvent(n.ready);
-                  }
-                });
-            }),
-            (e.prototype.requestAd = function (e) {
-              void 0 === e && (e = {});
-              var t = e.autoStart,
-                i = void 0 === t || t,
-                a = e.onFinish,
-                d = void 0 === a ? null : a,
-                A = e.onStart,
-                c = void 0 === A ? null : A,
-                l = e.position,
-                p = void 0 === l ? null : l;
-              if (((this.autoStartOnReady = !1 !== i), d && this.registerHandler("onFinish", d), c && this.registerHandler("onStart", c), this.forceDisableCommercialBreak && [n.ads.position.midroll, n.ads.position.preroll].includes(p)))
-                d && d();
-              else if (this.isBot) d && d({});
-              else {
-                if (!this.sdkBooted)
-                  return (
-                    o.dispatchEvent(n.ads.error, {
-                      message: "Requesting ad on unbooted SDK",
-                    }),
-                    void this.sdkNotBootedButCalled()
-                  );
-                else if ((!S() && !E()) || p === n.ads.position.rewarded)
-                  if (null !== p && s(p, n.ads.position)) if (!Be(this.country) || this.installedTCFv2 || r.debug) if (!this.isCCPA || this.installedUSP) if (this.adReady) o.dispatchEvent(n.ads.ready);
-
-                if (p === n.ads.position.rewarded) {
-                } else
-                  o.dispatchEvent(n.ads.limit, {
-                    reason: n.info.messages.timeLimit,
-                  });
-              }
-            }),
-            (e.prototype.displayAd = function (e, t, i, a) {
-              if (!this.isBot) {
-                var s = n.ads.position.display;
-                if (!Be(this.country) || this.installedTCFv2 || r.debug)
-                  if (!this.isCCPA || window.__uspapi)
-                    if (t) {
-                      if (!this.sdkBooted)
-                        return (
-                          o.dispatchEvent(n.ads.error, {
-                            message: "Requesting ad on unbooted SDK",
-                            position: s,
-                          }),
-                          void this.sdkNotBootedButCalled()
-                        );
-                      if (e)
-                        if (this.sdkImaError)
-                          o.dispatchEvent(n.ads.error, {
-                            message: "Adblocker has been detected",
-                            position: s,
-                          });
-                        else {
-                          if (!this.IGD.validateDisplaySettings(t))
-                            return o.dispatchEvent(n.ads.error, {
-                              reason: "Display size " + t + " is not supported on this device",
-                              position: s,
-                            });
-                          var d = $e($e({}, this.genericCriteria()), this.criteria);
-                          this.IGD.renderIGDAd(e, t, d, i, a);
-                        }
-                      else
-                        o.dispatchEvent(n.ads.error, {
-                          message: "Provided container does not exist",
-                          position: s,
-                        });
-                    } else
-                      o.dispatchEvent(n.ads.error, {
-                        message: "No ad size given, usage: displayAd(<container>, <size>)",
-                        position: s,
-                      });
-                  else
-                    o.dispatchEvent(n.ads.error, {
-                      message: "No USP detected, please contact developersupport@poki.com for more information",
-                      position: s,
-                    });
-                else
-                  o.dispatchEvent(n.ads.error, {
-                    message: "No TCFv2 CMP detected, please contact developersupport@poki.com for more information",
-                    position: s,
-                  });
-              }
-            }),
-            (e.prototype.destroyAd = function (e) {
-              if (!this.sdkBooted) return o.dispatchEvent(), void this.sdkNotBootedButCalled();
-              this.sdkImaError ? o.dispatchEvent() : ((e = e || document.body), this.IGD.clearIGDAd(e));
-            }),
-            (e.prototype.startStartAdsAfterTimer = function () {}),
-            (e.prototype.enableSettings = function (e) {
-              (this.criteria = $e({}, e.customCriteria)), (this.adTimings = new u(e.adTiming));
-            }),
-            (e.prototype.togglePlayerAdvertisingConsent = function (e) {
-              if (e) {
-                var t,
-                  i =
-                    parseInt(
-                      (function (e) {
-                        if (!Se) return Ee[e];
-                        try {
-                          return localStorage.getItem(e);
-                        } catch (t) {
-                          return Ee[e];
-                        }
-                      })("playerAge"),
-                      10
-                    ) || 0,
-                  n = this.country,
-                  r = Be(n),
-                  a = ((t = n), Ce.includes(t)),
-                  o = Pe(n);
-                (r || a || Pe) && ((r && i <= 12) || (a && i <= 16) || (o && i <= 16)) ? this.disableProgrammatic() : this.enableProgrammatic();
-              } else this.disableProgrammatic();
-            }),
-            (e.prototype.disableProgrammatic = function () {
-              (e.childDirected = !0), (this.programmaticAdsEnabled = !1);
-            }),
-            (e.prototype.enableProgrammatic = function () {
-              (e.childDirected = !1), (this.programmaticAdsEnabled = !0);
-            }),
-            (e.prototype.getProgrammaticAdsEnabled = function () {
-              return this.programmaticAdsEnabled;
-            }),
-            (e.prototype.setDebug = function (e) {
-              this.debugIsOverwritten ? e && dt.track(n.tracking.debugTrueInProduction) : (r.debug = e);
-            }),
-            (e.prototype.resize = function () {
-              var e = this;
-              if (!this.sdkBooted) return this.sdkNotBootedButCalled();
-              if (!this.sdkImaError) {
-                var t = this.playerSkin.getVideoBounds();
-                0 !== t.width && 0 !== t.height
-                  ? this.ima.resize(t.width, t.height)
-                  : setTimeout(function () {
-                      e.resize();
-                    }, 100);
-              }
-            }),
-            (e.prototype.onMessage = function (e) {
-              if ("string" == typeof e.data.type)
-                switch (e.data.type) {
-                  case "toggleNonPersonalized":
-                    this.toggleNonPersonalized(!(!e.data.content || !e.data.content.nonPersonalized));
-                    break;
-                  case "setPersonalizedADConsent":
-                    this.toggleNonPersonalized(!(e.data.content && e.data.content.consent)), this.setConsentString(e.data.content ? e.data.content.consentString : "");
-                    break;
-                  case "forceDisableCommercialBreak":
-                    this.forceDisableCommercialBreak = !0;
-                }
-            }),
-            (e.prototype.startAd = function () {
-              if (!this.sdkBooted) return this.sdkNotBootedButCalled();
-              this.sdkImaError ||
-                (this.adReady
-                  ? (this.resize(), this.ima.startPlayback())
-                  : o.dispatchEvent(n.ads.error, {
-                      message: "No ads ready to start",
-                    }));
-            }),
-            (e.prototype.startAdClicked = function () {
-              "undefined" != typeof navigator && /(iPad|iPhone|iPod)/gi.test(navigator.userAgent) && this.startAdEnabled && ((this.startAdEnabled = !1), this.playerSkin.hideStartAdButton(), this.ima.startIOSPlayback());
-            }),
-            (e.prototype.stopAd = function () {
-              if (!this.sdkBooted) return this.sdkNotBootedButCalled();
-              this.sdkImaError || (this.waterfall.stopWaterfall(), this.ima.stopPlayback(), this.playerSkin.hide());
-            }),
-            (e.prototype.resumeAd = function () {
-              if (!this.sdkBooted) return this.sdkNotBootedButCalled();
-              this.sdkImaError || (this.playerSkin.hidePauseButton(), this.ima.resumeAd());
-            }),
-            (e.prototype.skipAd = function () {
-              this.stopAd(),
-                this.callHandler("onFinish", {
-                  type: n.ads.completed,
-                  rewardAllowed: !0,
-                });
-            }),
-            (e.prototype.muteAd = function () {
-              if (!this.sdkBooted) return this.sdkNotBootedButCalled();
-              this.sdkImaError || this.ima.muteAd();
-            }),
-            (e.prototype.registerHandler = function (e, t) {
-              this.handlers[e] = t;
-            }),
-            (e.prototype.callHandler = function (e) {
-              for (var t = [], i = 1; i < arguments.length; i++) t[i - 1] = arguments[i];
-              "function" == typeof this.handlers[e] && this.handlers[e](t);
-            }),
-            (e.prototype.setupDefaultEvents = function () {
-              var e = this;
-              o.addEventListener(n.ready, function () {
-                (e.sdkBooted = !0), e.callHandler("onReady");
-              }),
-                o.addEventListener(n.adblocked, function () {
-                  (e.sdkBooted = !0), e.callHandler("onReady");
-                }),
-                o.addEventListener(n.ads.ready, function () {
-                  (e.adReady = !0), e.callHandler("onReady");
-                }),
-                o.addEventListener(n.ads.started, function () {
-                  e.playerSkin.hideSpinner(),
-                    e.callHandler("onStart", {
-                      type: n.ads.limit,
-                    });
-                }),
-                o.addEventListener(n.ads.video.paused, function () {
-                  e.playerSkin.showPauseButton();
-                }),
-                o.addEventListener(n.ads.limit, function () {
-                  e.callHandler("onFinish", {
-                    type: n.ads.limit,
-                    rewardAllowed: !1,
-                  });
-                }),
-                o.addEventListener(n.ads.stopped, function () {
-                  e.callHandler("onFinish", {
-                    type: n.ads.stopped,
-                    rewardAllowed: !1,
-                  });
-                }),
-                o.addEventListener(n.ads.error, function () {
-                  e.callHandler("onFinish", {
-                    type: n.ads.error,
-                    rewardAllowed: !1,
-                  });
-                }),
-                o.addEventListener(n.ads.busy, function () {
-                  e.callHandler("onFinish", {
-                    type: n.ads.busy,
-                    rewardAllowed: !1,
-                  });
-                }),
-                o.addEventListener(n.ads.completed, function (t) {
-                  e.callHandler("onFinish", {
-                    type: n.ads.completed,
-                    rewardAllowed: !!t.rewardAllowed,
-                  });
-                }),
-                [n.ads.limit, n.ads.stopped, n.ads.error, n.ads.busy, n.ads.completed].forEach(function (t) {
-                  o.addEventListener(t, function () {
-                    e.playerSkin && e.playerSkin.hide(), (e.adReady = !1);
-                  });
-                });
-            }),
-            (e.prototype.genericCriteria = function () {
-              var e = {},
-                t = encodeURIComponent(_("tag") || ""),
-                i = encodeURIComponent(_("site_id") || ""),
-                n = encodeURIComponent(_("experiment") || ""),
-                r = encodeURIComponent(_("categories") || "");
-              return (e.tag = t), (e.tag_site = t + "|" + i), (e.site_id = i), (e.experiment = n), (e.categories = r), this.programmaticAdsEnabled || (e.disable_programmatic = 1), e;
-            }),
-            (e.prototype.setVolume = function (e) {
-              this.ima && this.ima.setVolume(e);
-            }),
-            (e.GetIsPokiIFrame = function () {
-              return (parseInt(_("site_id"), 10) || 0) > 0;
-            }),
-            (e.childDirected = !1),
-            (e.nonPersonalized = !1),
-            (e.consentString = ""),
-            e
-          );
-        })();
-      const nt = it;
-      const rt = (function () {
-        function e() {}
-        return (
-          (e.sendMessage = function (e, t) {
-            var i = window.parent;
-            if (!s(e, n.message)) {
-              var r = Object.keys(n.message).map(function (e) {
-                return "poki.message." + e;
-              });
-              throw new TypeError("Argument 'type' must be one of " + r.join(", "));
-            }
-            var a = t || {};
-            tt.gameId &&
-              tt.versionId &&
-              (a.pokifordevs = {
-                game_id: tt.gameId,
-                game_version_id: tt.versionId,
-              }),
-              i.postMessage(
-                {
-                  type: e,
-                  content: a,
-                },
-                "*"
-              );
-          }),
-          e
-        );
-      })();
-      var at = function (e) {
-        var t = new Array();
-        return (
-          Object.keys(e).forEach(function (i) {
-            "object" == typeof e[i] ? (t = t.concat(at(e[i]))) : t.push(e[i]);
-          }),
-          t
-        );
-      };
-      var ot = function () {
-          return (
-            (ot =
-              Object.assign ||
-              function (e) {
-                for (var t, i = 1, n = arguments.length; i < n; i++) for (var r in (t = arguments[i])) Object.prototype.hasOwnProperty.call(t, r) && (e[r] = t[r]);
-                return e;
-              }),
-            ot.apply(this, arguments)
-          );
-        },
-        st = at(n.tracking);
-      const dt = (function () {
-        function e() {}
-        return (
-          (e.track = function (e, t) {
-            if ((void 0 === t && (t = {}), -1 === st.indexOf(e))) throw new TypeError("Invalid 'event', must be one of " + st.join(", "));
-            if ("object" != typeof t) throw new TypeError("Invalid data, must be an object");
-            var i = o.getDataAnnotations();
-            if (null == i ? void 0 : i.vhbOnlyMode)
-              switch (e) {
-                case n.tracking.ads.status.impression:
-                  z(
-                    ot(
-                      {
-                        event: "video-impression",
-                        size: "640x360v",
-                      },
-                      i
-                    )
-                  );
-                  break;
-                case n.tracking.ads.video.error:
-                  z(
-                    ot(
-                      {
-                        event: "video-error",
-                        size: "640x360v",
-                      },
-                      i
-                    )
-                  );
-                  break;
-                case n.tracking.ads.video.loaderError:
-                  z(
-                    ot(
-                      {
-                        event: "video-adsloader-error",
-                        size: "640x360v",
-                      },
-                      i
-                    )
-                  );
-                  break;
-                case n.tracking.ads.status.completed:
-                  z(
-                    ot(
-                      {
-                        event: "video-complete",
-                        size: "640x360v",
-                      },
-                      i
-                    )
-                  );
-              }
-            if (r.debug || r.log) {
-              if (window.process && window.process.env && "test" === window.process.env.NODE_ENV) return;
-              Object.keys(t).length ? console.info("%cPOKI_TRACKER: %cTracked event '" + e + "' with data:", "font-weight: bold", "", t) : console.info("%cPOKI_TRACKER: %cTracked event '" + e + "'", "font-weight: bold", "");
-            }
-            rt.sendMessage(n.message.event, {
-              event: e,
-              data: t,
-            });
-          }),
-          (e.setupDefaultEvents = function () {
-            var t,
-              i =
-                (((t = {})[n.ready] = n.tracking.sdk.status.initialized),
-                (t[n.adblocked] = console.log(n.tracking.sdk.status.failed)),
-                (t[n.ads.busy] = n.tracking.ads.status.busy),
-                (t[n.ads.completed] = n.tracking.ads.status.completed),
-                (t[n.ads.error] = console.log(n.tracking.ads.status.error)),
-                (t[n.ads.displayError] = console.log(n.tracking.ads.status.displayError)),
-                (t[n.ads.impression] = n.tracking.ads.status.impression),
-                (t[n.ads.limit] = n.tracking.ads.status.limit),
-                (t[n.ads.ready] = n.tracking.ads.status.ready),
-                (t[n.ads.requested] = n.tracking.ads.status.requested),
-                (t[n.ads.prebidRequested] = n.tracking.ads.status.prebidRequested),
-                (t[n.ads.skipped] = n.tracking.ads.status.skipped),
-                (t[n.ads.started] = n.tracking.ads.status.started),
-                (t[n.ads.video.clicked] = n.tracking.ads.video.clicked),
-                (t[n.ads.video.error] = n.tracking.ads.video.error),
-                (t[n.ads.video.loaderError] = n.tracking.ads.video.loaderError),
-                (t[n.ads.video.buffering] = n.tracking.ads.status.buffering),
-                (t[n.ads.video.progress] = n.tracking.ads.video.progress),
-                (t[n.ads.video.paused] = n.tracking.ads.video.paused),
-                (t[n.ads.video.resumed] = n.tracking.ads.video.resumed),
-                (t[n.tracking.screen.gameplayStart] = n.tracking.screen.gameplayStart),
-                (t[n.tracking.screen.gameplayStop] = n.tracking.screen.gameplayStop),
-                (t[n.tracking.screen.loadingProgress] = n.tracking.screen.loadingProgress),
-                (t[n.tracking.screen.commercialBreak] = n.tracking.screen.commercialBreak),
-                (t[n.tracking.screen.rewardedBreak] = n.tracking.screen.rewardedBreak),
-                (t[n.tracking.screen.happyTime] = n.tracking.screen.happyTime),
-                t);
-            Object.keys(i).forEach(function (t) {
-              o.addEventListener(t, function (n) {
-                e.track(i[t], n);
-              });
-            });
-          }),
-          e
-        );
-      })();
-
-      function At(e) {
-        switch (Object.prototype.toString.call(e)) {
-          case "[object Error]":
-          case "[object Exception]":
-          case "[object DOMException]":
-            return !0;
-          default:
-            return e instanceof Error;
-        }
-      }
-      var ct = "poki_erruid",
-        lt = Date.now(),
-        pt = m(ct);
-
-      function ut(e) {
-        if (tt.gameId && tt.versionId) {
-          if (!(Date.now() < lt)) {
-            pt || ((pt = Math.random().toString(36).substr(2, 9)), g(ct, pt));
-            try {
-              var t = JSON.stringify({
-                  gid: tt.gameId,
-                  vid: tt.versionId,
-                  ve: 7,
-                  n: e.name,
-                  m: e.message,
-                  s: JSON.stringify(e.stack),
-                  ui: pt,
-                }),
-                i = "https://t.poki.io/ge";
-              if (navigator.sendBeacon) navigator.sendBeacon(i, t);
-              else {
-                var n = new XMLHttpRequest();
-                n.open("POST", i, !0), n.send(t);
-              }
-              lt = Date.now() + 100;
-            } catch (e) {
-              console.error(e);
-            }
-          }
-        } else console.log(e);
-      }
-      "undefined" != typeof window &&
-        ((t().remoteFetching = !1),
-        t().report.subscribe(function (e) {
-          if ("Script error." === e.message && window.pokiLastCatch) {
-            var i = window.pokiLastCatch;
-            (window.pokiLastCatch = null), t().report(i);
-          } else ut(e);
-        }),
-        (window.onunhandledrejection = function (e) {
-          At(e.reason)
-            ? t().report(e.reason)
-            : ut({
-                name: "unhandledrejection",
-                message: JSON.stringify(e.reason),
-              });
-        }));
-      var ht = function () {
-          return (
-            (ht =
-              Object.assign ||
-              function (e) {
-                for (var t, i = 1, n = arguments.length; i < n; i++) for (var r in (t = arguments[i])) Object.prototype.hasOwnProperty.call(t, r) && (e[r] = t[r]);
-                return e;
-              }),
-            ht.apply(this, arguments)
-          );
-        },
-        mt = (function () {
-          function t() {
-            var t = this;
-            (this.gameStarted = !1),
-              (this.SDK = new nt()),
-              (this.gameplayStartCounter = 0),
-              (this.gameplayStopCounter = 0),
-              (this.duringGameplay = !1),
-              (this.init = function (e) {
-                return (
-                  void 0 === e && (e = {}),
-                  new Promise(function (i, r) {
-                    t.SDK.init(
-                      ht(
-                        {
-                          onReady: function () {
-                            if (_("preroll")) {
-                              var e = t.SDK.adTimings.prerollPossible;
-                              (t.SDK.adTimings.prerollPossible = function () {
-                                return !0;
-                              }),
-                                t.commercialBreak(),
-                                (t.SDK.adTimings.prerollPossible = e);
-                            }
-                            i();
-                          },
-                          onAdblocked: r,
-                        },
-                        e
-                      )
-                    ),
-                      rt.sendMessage(n.message.sdkDetails, {
-                        version: "2.234.2",
-                      });
-                  })
-                );
-              }),
-              (this.initWithVideoHB = function () {
-                return t.init();
-              }),
-              (this.gameLoadingProgress = function (e) {
-                var t = {};
-                void 0 !== e.percentageDone && (t.percentageDone = Number(e.percentageDone)),
-                  void 0 !== e.kbLoaded && (t.kbLoaded = Number(e.kbLoaded)),
-                  void 0 !== e.kbTotal && (t.kbTotal = Number(e.kbTotal)),
-                  void 0 !== e.fileNameLoaded && (t.fileNameLoaded = String(e.fileNameLoaded)),
-                  void 0 !== e.filesLoaded && (t.filesLoaded = Number(e.filesLoaded)),
-                  void 0 !== e.filesTotal && (t.filesTotal = Number(e.filesTotal)),
-                  dt.track(n.tracking.screen.gameLoadingProgress, t);
-              }),
-              (this.gameLoadingStart = function () {
-                var e, t;
-                dt.track(n.tracking.screen.gameLoadingStarted, {
-                  now: Math.round(null === (t = null === (e = window.performance) || void 0 === e ? void 0 : e.now) || void 0 === t ? void 0 : t.call(e)) || void 0,
-                });
-              }),
-              (this.gameLoadingFinished = function () {
-                var e, t, i, r, a;
+                body: t,
+                mode: "no-cors",
+                keepalive: !0,
+                credentials: "omit"
+            }).catch((function(n) {
+                console.error(n);
                 try {
-                  (i = performance
-                    .getEntriesByType("resource")
-                    .map(function (e) {
-                      return e.transferSize;
-                    })
-                    .reduce(function (e, t) {
-                      return e + t;
-                    })),
-                    (i += performance.getEntriesByType("navigation")[0].transferSize);
+                    var o = "XMLHttpRequest" in window ? new XMLHttpRequest : new ActiveXObject("Microsoft.XMLHTTP");
+                    o.open("POST", e, !0), o.setRequestHeader("Content-Type", "text/plain"), o.send(t)
                 } catch (e) {}
-                dt.track(n.tracking.screen.gameLoadingFinished, {
-                  transferSize: i,
-                  trackers: ((r = window), (a = []), "function" != typeof r.ga, r.mixpanel && "function" == typeof r.mixpanel.track && a.push("mixpanel"), r.Countly && a.push("countly"), r.amplitude && a.push("amplitude"), a).join(","),
-                  now: Math.round(null === (t = null === (e = window.performance) || void 0 === e ? void 0 : e.now) || void 0 === t ? void 0 : t.call(e)) || void 0,
-                });
-              }),
-              (this.gameplayStart = function (e) {
-                t.gameplayStartCounter++,
-                  (t.duringGameplay = !0),
-                  t.gameStarted || ((t.gameStarted = !0), dt.track(n.tracking.screen.firstRound), t.SDK.startStartAdsAfterTimer()),
-                  dt.track(
-                    n.tracking.screen.gameplayStart,
-                    ht(ht({}, e), {
-                      playId: t.gameplayStartCounter,
-                    })
-                  );
-              }),
-              (this.gameInteractive = function () {
-                dt.track(n.tracking.screen.gameInteractive);
-              }),
-              (this.gameplayStop = function (e) {
-                t.gameplayStopCounter++,
-                  (t.duringGameplay = !1),
-                  dt.track(
-                    n.tracking.screen.gameplayStop,
-                    ht(ht({}, e), {
-                      playId: t.gameplayStartCounter,
-                      stopId: t.gameplayStopCounter,
-                    })
-                  );
-              }),
-              (this.roundStart = function (e) {
-                void 0 === e && (e = ""),
-                  (e = String(e)),
-                  dt.track(n.tracking.screen.roundStart, {
-                    identifier: e,
-                  });
-              }),
-              (this.roundEnd = function (e) {
-                void 0 === e && (e = ""),
-                  (e = String(e)),
-                  dt.track(n.tracking.screen.roundEnd, {
-                    identifier: e,
-                  });
-              }),
-              (this.customEvent = function (e, i, r) {
-                void 0 === r && (r = {}),
-                  e && i
-                    ? ((e = String(e)),
-                      (i = String(i)),
-                      (r = ht({}, r)),
-                      dt.track(n.tracking.custom, {
-                        eventNoun: e,
-                        eventVerb: i,
-                        eventData: r,
-                      }))
-                    : t.error("customEvent", "customEvent needs at least a noun and a verb");
-              }),
-              (this.commercialBreak = function (e) {
-                return new Promise(function (i) {
-                  var r = t.gameStarted ? n.ads.position.midroll : n.ads.position.preroll;
-                  o.clearAnnotations(),
-                    o.setDataAnnotations({
-                      opportunityId: Ke(),
-                      position: r,
+            }))
+        }("https://t.poki.io/l", JSON.stringify({
+            c: "observer-error",
+            ve: 7,
+            d: o
+        }))
+    }
+    var a = "poki_uid",
+        s = "poki_uid_new",
+        c = "poki_uid_version",
+        d = "poki_uid_ttl",
+        l = 15552e3;
+
+    function u(e) {
+        if (!e) return "";
+        try {
+            var t = /^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(e);
+            return new URL(t ? e : "https://".concat(e)).hostname || ""
+        } catch (e) {
+            return ""
+        }
+    }
+
+    function p(e) {
+        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(e) || e.includes(":")) return e;
+        if ("gemini.google.com" === e) return "gemini-google";
+        if ("bard.google.com" === e) return "bard-google";
+        if ("com.google.android.googlequicksearchbox" === e) return e;
+        var t = function(e) {
+            if (!e) return "";
+            if (/^\d{1,3}(\.\d{1,3}){3}$/.test(e) || e.includes(":")) return e;
+            var t = e.split(".").filter(Boolean);
+            if (t.length <= 2) return e;
+            var n = new Set(["co.uk", "gov.uk", "ac.uk", "sch.uk", "com.au", "net.au", "org.au", "com.br", "com.mx", "com.tr", "com.ar", "com.cn", "com.hk", "com.tw", "com.sg", "com.my", "com.id", "co.nz", "co.in", "co.kr", "co.za"]),
+                o = t.slice(-2).join("."),
+                r = t.slice(-3).join(".");
+            return n.has(o) ? t.slice(-3).join(".") : n.has(r) ? t.slice(-4).join(".") : o
+        }(e);
+        return t ? t.split(".")[0] || t : e || ""
+    }
+
+    function m(e, t) {
+        var n = e.getAll(t);
+        return n && 0 !== n.length ? n[n.length - 1] : ""
+    }
+    window._pokiUserGlobalName = window._pokiUserGlobalName || "user";
+    var f = new Set(["authorize.roblox.com", "accounts.google.com", "appleid.apple.com", "idmsa.apple.com", "login.microsoftonline.com", "login.live.com"]),
+        g = new Set(["doubleclick", "googlesyndication", "googleapis", "googleadservices"]),
+        h = new Set(["doubleclick", "googlesyndication", "googleapis", "googleadservices", "adsenseformobileapps"]),
+        y = new Set(["google", "bing", "brave", "yahoo", "baidu", "yandex", "duckduckgo", "aol", "ask", "avg", "babylon", "googleweblight", "info", "izito", "msn", "myway", "naver", "qo-search", "searchencrypt", "search-results", "searchlock", "seznam", "so", "sogou", "startpage", "startpagina", "startsiden", "virgilio", "wp", "zapmeta", "100searchengines", "dailysearches", "easyfindanswers", "ecosia", "findretro", "geniol", "gsearch", "gosearcresults", "gosrch", "juniorsafesearch", "karmasearch", "keyboardsearch", "kvasir", "metager", "mojeek", "mysearcheasy", "onlineradiok", "panda-search", "petalsearch", "presearch", "qwant", "rammerhead", "relatedsearches", "search", "search-browser", "searchbip", "searcheira", "search-io", "search-load", "searchmusic-online", "search-redirect", "searchsafe", "searchsail", "search-sprint", "search-tab", "searchspear", "sosearcher", "srchoffer", "syndicatedsearch", "trojanwall", "voicecommandsearcher", "web-explore", "webcrawler", "yellow-search", "ziyuan", "ziyuanm", "zuiben", "coccoc", "zhanlian"]),
+        w = 18e5,
+        v = "poki_session";
+    window._pokiSessionGlobalName = window._pokiSessionGlobalName || "session";
+    var b = ["poki.at", "poki.be", "poki.by", "poki.ch", "poki.cn", "poki.co.id", "poki.co.il", "poki.com.br", "poki.com", "poki.cz", "poki.de", "poki.dk", "poki.fi", "poki.it", "poki.jp", "poki.nl", "poki.pl", "poki.pt", "poki.se", "www.trochoi.net"];
+
+    function k() {
+        try {
+            var e = new URL(document.referrer).hostname;
+            return b.indexOf(e) > -1 ? "poki" : e
+        } catch (e) {}
+        return ""
+    }
+
+    function A(e, t) {
+        if (!e) return !1;
+        if (!(e && e.page && e.landing_page && e.previous_page)) return !1;
+        if (!e.tab_id) return !1;
+        if (!e.expire || Date.now() > e.expire) return !1;
+        if (e.expire > Date.now() + w) return !1;
+        if (t) {
+            if (void 0 !== e.referrer_domain) {
+                var n = k(),
+                    o = f.has(n);
+                if ("poki" !== n && !o && n !== e.referrer_domain) return !1
+            }
+            var r = new URLSearchParams(window.location.search);
+            if (["gclid", "msclkid", "yclid", "ttclid", "fbclid", "utm_campaign", "campaign", "adgroup", "creative", "utm_term"].some((function(e) {
+                    return r.has(e)
+                })) || "web_app_manifest" === r.get("utm_source") || "bing" === r.get("utm_source") || "cpc" === r.get("utm_medium") || "rtb-cpm" === r.get("utm_medium")) return !1
+        }
+        return !0
+    }
+
+    function S() {
+        var e = null;
+        A(window[window._pokiSessionGlobalName], !1) && (e = window[window._pokiSessionGlobalName]);
+        try {
+            var t = sessionStorage.getItem(v);
+            if (t) {
+                var n = JSON.parse(t);
+                A(n, !0) && (!e || n.depth > e.depth) && (e = n)
+            }
+        } catch (e) {
+            try {
+                i(e, "getSession", sessionStorage.getItem(v))
+            } catch (t) {
+                i(e, "getSession", t)
+            }
+        }
+        return e
+    }
+
+    function E() {
+        var e = 0;
+        window[window._pokiSessionGlobalName] && window[window._pokiSessionGlobalName].count && (e = window[window._pokiSessionGlobalName].count);
+        try {
+            var t = sessionStorage.getItem(v);
+            if (t) {
+                var o = JSON.parse(t);
+                o && o.count && o.count > e && (e = o.count)
+            }
+        } catch (e) {
+            try {
+                i(e, "getPreviousSessionCount", sessionStorage.getItem(v))
+            } catch (t) {
+                i(e, "getPreviousSessionCount", t)
+            }
+        }
+        try {
+            var r = n(v);
+            if (r) {
+                var a = JSON.parse(r);
+                a && a.count && a.count > e && (e = a.count)
+            }
+        } catch (e) {
+            try {
+                i(e, "getPreviousSessionCount", n(v))
+            } catch (t) {
+                i(e, "getPreviousSessionCount", t)
+            }
+        }
+        return e
+    }
+
+    function I() {
+        if (window[window._pokiSessionGlobalName] && window[window._pokiSessionGlobalName].tab_id) return window[window._pokiSessionGlobalName].tab_id;
+        try {
+            var e = sessionStorage.getItem(v);
+            if (e) {
+                var t = JSON.parse(e);
+                if (t && t.tab_id) return t.tab_id
+            }
+        } catch (e) {}
+        return r()
+    }
+
+    function _() {
+        var e = 0,
+            t = S();
+        t && (e = t.depth);
+        try {
+            var o = n(v);
+            if (o) {
+                var r = JSON.parse(o);
+                !A(r, !0) || t && r.id !== t.id || (e = Math.max(e, r.depth))
+            }
+        } catch (e) {
+            var a = null;
+            try {
+                a = n(v) || null
+            } catch (e) {}
+            i(e, "getSessionDepth", a)
+        }
+        return e
+    }
+
+    function P(e, t, a) {
+        var c, b = null;
+        try {
+            (b = S()) ? (b.previous_page.path = b.page.path, b.previous_page.type = b.page.type, b.previous_page.id = b.page.id, b.previous_page.start = b.page.start, b.previous_page.pageview_id = b.page.pageview_id, b.page.path = e, b.page.type = t, b.page.id = a, b.page.start = Date.now(), b.page.pageview_id = r(), b.depth = _() + 1, b.expire = Date.now() + w) : b = function(e, t, a) {
+                try {
+                    var s = n(v);
+                    if (s) {
+                        var c = JSON.parse(s);
+                        if (A(c, !0)) return c.previous_page.path = c.page.path, c.previous_page.type = c.page.type, c.previous_page.id = c.page.id, c.previous_page.start = c.page.start, c.previous_page.pageview_id = c.page.pageview_id, c.page.path = e, c.page.type = t, c.page.id = a, c.page.start = Date.now(), c.page.pageview_id = r(), c.depth = _() + 1, c.expire = Date.now() + w, c.tab_id = I(), o(v, JSON.stringify(c)), c
+                    }
+                } catch (e) {
+                    var d = null;
+                    try {
+                        d = n(v) || null
+                    } catch (e) {}
+                    i(e, "getSessionDepth", d)
+                }
+                var l = r(),
+                    b = function() {
+                        var e, t = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : {},
+                            n = t.search,
+                            o = void 0 === n ? "" : n,
+                            r = t.referrer,
+                            i = void 0 === r ? "" : r,
+                            a = new URLSearchParams(o),
+                            s = u(i),
+                            c = p(s),
+                            d = "" !== i,
+                            l = a.has("tt"),
+                            w = a.has("sc"),
+                            v = m(a, "utm_source"),
+                            b = m(a, "utm_medium"),
+                            k = m(a, "utm_term"),
+                            A = m(a, "poki_source"),
+                            S = m(a, "placement"),
+                            E = m(a, "gclid"),
+                            I = m(a, "msclkid"),
+                            _ = m(a, "yclid"),
+                            P = m(a, "ttclid"),
+                            T = m(a, "fbclid"),
+                            x = m(a, "adgroup"),
+                            O = m(a, "creative"),
+                            C = m(a, "network");
+                        e = c || ("" === s && "" !== i ? "" : i);
+                        var D, L, M = !d || "poki" === e || h.has(e),
+                            N = (D = (i || "").match(/^android-app:\/\/([^/]+)/i)) ? D[1].toLowerCase() : null,
+                            B = function(e) {
+                                var t = (e || "").match(/^ios-app:\/\/([^/]+)/i);
+                                return t ? t[1].toLowerCase() : null
+                            }(i),
+                            R = function(e) {
+                                var t = (e || "").match(/^mobileapp::\d+-([^/]+)/i);
+                                return t ? t[1].toLowerCase() : null
+                            }(i),
+                            j = M && S.includes("mobileapp::") && S.includes("mobileapp::2-") ? function(e) {
+                                var t = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : /^mobileapp::2-([^/]+)/,
+                                    n = (e || "").match(t);
+                                return n ? n[1] : null
+                            }(S) : null;
+                        L = "chrome_extension" === v ? "poki_chrome_extension" : "edge_extension" === v ? "poki_edge_extension" : l ? "tiktok" : w ? "snapchat" : "android_app" === A ? "poki_android_app" : "web_app_manifest" === v ? "pwa" : N || B || R || (!d && v ? v : j || (M && S ? p(u(S)) || S : "g" === C ? "google" : "ytv" === C ? "youtube" : d || E || I || _ || P || T || x || O ? !d && E && /^\d+$/.test(E) ? "direct" : "" === e && d ? "unknown" : e || "unknown" : "direct"));
+                        var V, G = g.has(L) || !!(E || I || _ || P || T || x || O) || "cpc" === b || "rtb-cpm" === b || "ppc" === b || "paid" === b,
+                            F = (s || "").toLowerCase(),
+                            U = !f.has(F) && (y.has(L) || /^com\.google\.android\.googlequicksearchbox$/.test(F) || /^webcache\.googleusercontent\.com$/.test(F) || !!k && "share" !== b);
+                        return V = "snapchat" === v ? "cpc" : T && !v ? "organic" : G ? "cpc" : U ? "organic" : f.has(F) ? "oauth" : "pwa" === L || "poki_android_app" === L || d || "social" === b || "email" === b ? "referral" : L ? "unknown" : "direct", "direct" === L && "direct" !== V && "unknown" !== V && "referral" !== V && (L = "unknown"), g.has(L) && (L = "unknown"), "poki" === L && "cpc" === V && (L = "unknown"), {
+                            source: L,
+                            medium: V
+                        }
+                    }({
+                        referrer: document.referrer,
+                        search: window.location.search
                     }),
-                    dt.track(n.tracking.screen.commercialBreak),
-                    t.SDK.requestAd({
-                      position: r,
-                      onFinish: i,
-                      onStart: e,
-                    });
+                    S = b.source,
+                    P = b.medium;
+                return {
+                    id: r(),
+                    expire: Date.now() + w,
+                    tab_id: I(),
+                    depth: 1,
+                    count: E() + 1,
+                    page: {
+                        path: e,
+                        type: t,
+                        id: a,
+                        start: Date.now(),
+                        pageview_id: l
+                    },
+                    previous_page: {},
+                    landing_page: {
+                        path: e,
+                        type: t,
+                        id: a,
+                        start: Date.now(),
+                        pageview_id: l
+                    },
+                    referrer_domain: k(),
+                    source: S,
+                    medium: P
+                }
+            }(e, t, a), b.count > 1 && (c = parseInt(n(d), 10) || l, o(s, "0", c), window[window._pokiUserGlobalName] && (window[window._pokiUserGlobalName].is_new = !1));
+            var P = JSON.stringify(b);
+            try {
+                sessionStorage.setItem(v, P)
+            } catch (e) {
+                i(e, "updateSession-1")
+            }
+            window[window._pokiSessionGlobalName] = b;
+            try {
+                o(v, P)
+            } catch (e) {
+                i(e, "updateSession-4")
+            }
+        } catch (e) {
+            i(e, "updateSession-2")
+        }
+        return b
+    }
+    const T = (e, t) => {
+            let n = !1;
+            return Object.keys(t).forEach((o => {
+                t[o] === e && (n = !0)
+            })), n
+        },
+        x = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "GB", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO"];
+    const O = (e, t) => {
+            if ("undefined" == typeof window && !t) return "";
+            e = e.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            const n = new RegExp(`(?:[\\?&]|^)${e}=([^&#]*)`).exec(t || window?.location?.search || "");
+            return null === n ? "" : decodeURIComponent(n[1].replace(/\+/g, " "))
+        },
+        C = () => "undefined" != typeof navigator && /(?:phone|windows\s+phone|ipod|blackberry|(?:android|bb\d+|meego|silk|googlebot) .+? mobile|palm|windows\s+ce|opera mini|avantgo|mobilesafari|docomo|kaios)/i.test(navigator.userAgent),
+        D = () => "undefined" != typeof navigator && /(?:ipad|playbook|(?:android|bb\d+|meego|silk)(?! .+? mobile))/i.test(navigator.userAgent);
+    var L;
+    ! function(e) {
+        e.ON = "on", e.NOT_APPLICABLE = "not_applicable", e.DISABLED = "disabled", e.PBS_ONLY = "pbs_only", e.DPF_ONLY = "dpf_only", e.CSTS_ONLY = "csts_only", e.PBS_DPF_CSTS = "pbs_dpf_csts"
+    }(L || (L = {}));
+    const M = O("referrer") || "",
+        N = O("ccpaApplies") || "",
+        B = {
+            bot: "1" === O("bot"),
+            categories: O("categories") || "",
+            device: C() ? "mobile" : D() ? "tablet" : "desktop",
+            experiment: O("experiment") || "",
+            forceAd: O("force_ad") || !1,
+            isPokiIframe: (parseInt(O("site_id"), 10) || 0) > 0,
+            isPokiExternal: !!window.isPokiExternal,
+            siteID: parseInt(O("site_id"), 10) || 3,
+            tag: O("tag") || "",
+            versionID: O("game_version_id"),
+            debugMode: "true" === O("pokiDebug"),
+            logMode: "" !== O("pokiLogging"),
+            testVideos: "true" === O("testVideos"),
+            referrerParam: M,
+            isPlayground: !!window.isPokiPlayground,
+            isInspector: "inspector-uploads.poki-user-content.com" === window?.location?.host || document?.referrer?.includes("inspector.poki.dev") || "1" === O("inspector"),
+            houseAdsOnly: !1,
+            adOverrideMode: !1,
+            googlePreview: !!O("google_preview"),
+            ccpaApplies: "1" === N || "0" !== N && void 0,
+            country: (O("country") || "").toUpperCase(),
+            gameID: O("game_id"),
+            gdprApplies: (R = (O("country") || "").toUpperCase(), x.includes(R)),
+            contentGameID: void 0,
+            specialCondition: O("special_condition"),
+            nonPersonalized: "y" === O("nonPersonalized"),
+            familyFriendly: "y" === O("familyFriendly"),
+            kioskMode: "y" === O("kioskMode") || !!window?.kioskMode,
+            forceBidder: O("force_bidder") || "",
+            cloudSaveGames: "y" === O("cloudsavegames"),
+            AYMode: L.ON,
+            forceStartAY: "y" === O("forceStartAY")
+        };
+    var R;
+    const j = (e, t) => {
+            B[e] = t
+        },
+        V = B;
+    class G {
+        static sendMessage(t, n, o = window.parent) {
+            if (!T(t, e.message)) {
+                const t = Object.keys(e.message).map((e => `poki.message.${e}`));
+                throw new TypeError(`Argument 'type' must be one of ${t.join(", ")}`)
+            }
+            const r = n || {};
+            V.gameID && V.versionID && (r.pokifordevs = {
+                game_id: V.gameID,
+                game_version_id: V.versionID
+            }), o?.postMessage({
+                type: t,
+                content: r
+            }, "*")
+        }
+    }
+    class F {
+        static debug = !1;
+        static log = !1;
+        static init = (e, t) => {
+            const {
+                hostname: n
+            } = window.location;
+            void 0 === e && ("test" === window?.process?.env?.NODE_ENV ? (e = !1, void 0 === t && (t = !1)) : "localhost" === n || "127.0.0.1" === n || "[::1]" === n || "launch.playcanvas.com" === n ? (e = !0, void 0 === t && (t = !1)) : (e = !1, void 0 === t && (t = !1))), V.isInspector ? (e = !0, t = !0) : n.endsWith(".poki-gdn.com") && (e = !1, t = !1), V.debugMode && (e = !0), V.logMode && (t = !0), void 0 === t && (t = e), F.debug = e, F.log = t
+        }
+    }
+    const U = e => {
+            let t = [];
+            return Object.keys(e).forEach((n => {
+                "object" == typeof e[n] ? t = t.concat(U(e[n])) : t.push(e[n])
+            })), t
+        },
+        K = U;
+    class z {
+        static listeners = {};
+        static videoDataAnnotations = {};
+        static clearEventListeners() {
+            this.listeners = {}
+        }
+        static removeEventListener(e, t) {
+            if (!Object.prototype.hasOwnProperty.call(this.listeners, e)) return;
+            const n = this.listeners[e].indexOf(t); - 1 !== n && this.listeners[e].splice(n, 1)
+        }
+        static addEventListener(e, t, n = !1) {
+            if (n = !!n, Object.prototype.hasOwnProperty.call(this.listeners, e) || (this.listeners[e] = []), n) {
+                const n = o => {
+                    this.removeEventListener.bind(this)(e, n), t(o)
+                };
+                this.listeners[e].push(n)
+            } else this.listeners[e].push(t)
+        }
+        static dispatchEvent(e, t = {}) {
+            const n = Object.keys(this.listeners);
+            for (let o = 0; o < n.length; o++) {
+                const r = n[o];
+                if (e === r) {
+                    const e = this.listeners[r];
+                    for (let n = 0; n < e.length; n++) e[n]({
+                        ...this.videoDataAnnotations,
+                        ...t
+                    })
+                }
+            }
+        }
+        static addVideoDataAnnotations(e) {
+            this.videoDataAnnotations = {
+                ...this.videoDataAnnotations,
+                ...e
+            }
+        }
+        static getVideoDataAnnotations() {
+            return this.videoDataAnnotations
+        }
+        static clearVideoDataAnnotations() {
+            this.videoDataAnnotations = {}
+        }
+    }
+    const H = e => {
+        if ("undefined" == typeof window || "undefined" == typeof fetch) return;
+        const t = z.getVideoDataAnnotations();
+        let {
+            size: n
+        } = e;
+        e.event?.startsWith("video-") && (n = "640x360v");
+        const o = {
+            ...e,
+            size: n,
+            adBreakId: e.adBreakId || t.adBreakId,
+            currentAdNumber: e.currentAdNumber || t.currentAdNumber,
+            totalAdAmount: e.totalAdAmount || t.totalAdAmount,
+            opportunity_id: e.opportunityId || t.opportunityId,
+            ad_unit_path: e.adUnitPath || t.adUnitPath,
+            p4d_game_id: V.gameID,
+            p4d_version_id: V.versionID,
+            bidder: e.bidder || t.bidder,
+            bid: e.bid || t.bid || 0,
+            error_code: e.errorCode,
+            creative_id: e.creativeId || t.creativeId,
+            experiment: V.experiment
+        };
+        fetch("https://t.poki.io/adserver", {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify(o)
+        }).catch((e => {
+            console.warn("%cPOKI:%c adserver error", "font-weight: bold", "", e)
+        }))
+    };
+
+    function q(e, ...t) {
+        console.warn(`%cPOKI:%c ${e}`, "background-color: red; border-radius: 3px; color: white; padding: 1px 5px", "", ...t)
+    }
+
+    function Y(e, ...t) {
+        console.error(`%cPOKI:%c ${e}`, "background-color: red; border-radius: 3px; color: white; padding: 1px 5px", "", ...t)
+    }
+    const W = (e, t = !1) => new Promise(((n, o) => {
+        const r = document.createElement("script");
+        r.type = t ? "module" : "text/javascript", r.async = !0, r.src = e;
+        const i = () => {
+            r.readyState && "loaded" !== r.readyState && "complete" !== r.readyState || (n(), r.onload = null, r.onreadystatechange = null)
+        };
+        r.onload = i, r.onreadystatechange = i, r.onerror = o, document.head.appendChild(r)
+    }));
+    let $ = null;
+    const J = K(e.tracking),
+        Q = window;
+    class Z {
+        static logToObserver = !1;
+        static cmpRequired = void 0;
+        static cmpIndex = void 0;
+        static eventQueue = [];
+        static track(t, n = {}) {
+            try {
+                let o = {
+                    ...n
+                };
+                if (-1 === J.indexOf(t)) throw new TypeError(`Invalid 'event', must be one of ${J.join(", ")}`);
+                if ("object" != typeof o) throw new TypeError("Invalid data, must be an object");
+                const r = z.getVideoDataAnnotations();
+                if (r?.pokiAdServer) switch (t) {
+                    case e.tracking.ads.status.started: {
+                        const {
+                            creativeId: e
+                        } = r;
+                        z.addVideoDataAnnotations({
+                            houseAdId: e
+                        }), o.houseAdId = e;
+                        break
+                    }
+                    case e.tracking.ads.status.impression: {
+                        const e = o?.creativeId;
+                        H({
+                            ...o,
+                            event: "video-impression",
+                            creativeId: e
+                        }), z.addVideoDataAnnotations({
+                            houseAdId: e
+                        }), o.houseAdId = e;
+                        break
+                    }
+                    case e.tracking.ads.video.error:
+                        H({
+                            ...o,
+                            event: "video-error",
+                            errorCode: o?.errorCode
+                        });
+                        break;
+                    case e.tracking.ads.video.loaderError:
+                        H({
+                            ...o,
+                            event: "video-adsloader-error",
+                            errorCode: o?.errorCode
+                        });
+                        break;
+                    case e.tracking.ads.status.completed:
+                        H({
+                            ...o,
+                            event: "video-complete"
+                        })
+                }
+                if (t.includes("pokiTrackingRewardedWeb") && (o = r), F.log) {
+                    if ("test" === window?.process?.env?.NODE_ENV) return;
+                    Object.keys(o).length ? console.info(`%cPOKI_TRACKER:%c Tracked event '${t}' with data:`, "font-weight: bold", "", o) : console.info(`%cPOKI_TRACKER:%c Tracked event '${t}'`, "font-weight: bold", "")
+                }
+                if ($?.({
+                        event: t,
+                        data: o
+                    }), G.sendMessage(e.message.event, {
+                        event: t,
+                        data: o
+                    }), !(V.isPokiIframe || V.isInspector || V.isPlayground || V.isPokiExternal)) {
+                    const n = "sdk",
+                        r = "message",
+                        i = {
+                            content: {
+                                event: t,
+                                data: o,
+                                pokifordevs: {
+                                    game_id: V.gameID,
+                                    game_version_id: void 0
+                                }
+                            },
+                            type: e.message.event
+                        };
+                    Z.logToObserver ? Z.pushEvent(n, r, i) : (Z.eventQueue.push([n, r, i]), Z.eventQueue.length > 100 && Z.eventQueue.shift())
+                }
+            } catch (e) {
+                Y("error while tracking event", e)
+            }
+        }
+        static setupDefaultEvents() {
+            const t = {
+                [e.ready]: e.tracking.sdk.status.initialized,
+                [e.failed]: e.tracking.sdk.status.failed,
+                [e.ads.busy]: e.tracking.ads.status.busy,
+                [e.ads.completed]: e.tracking.ads.status.completed,
+                [e.ads.error]: e.tracking.ads.status.error,
+                [e.ads.impression]: e.tracking.ads.status.impression,
+                [e.ads.limit]: e.tracking.ads.status.limit,
+                [e.ads.ready]: e.tracking.ads.status.ready,
+                [e.ads.requested]: e.tracking.ads.status.requested,
+                [e.ads.prebidRequested]: e.tracking.ads.status.prebidRequested,
+                [e.ads.skipped]: e.tracking.ads.status.skipped,
+                [e.ads.started]: e.tracking.ads.status.started,
+                [e.ads.video.clicked]: e.tracking.ads.video.clicked,
+                [e.ads.video.error]: e.tracking.ads.video.error,
+                [e.ads.video.loaderError]: e.tracking.ads.video.loaderError,
+                [e.ads.video.buffering]: e.tracking.ads.status.buffering,
+                [e.ads.video.progress]: e.tracking.ads.video.progress,
+                [e.ads.video.paused]: e.tracking.ads.video.paused,
+                [e.ads.video.resumed]: e.tracking.ads.video.resumed,
+                [e.ads.extendedVideoError]: e.tracking.ads.video.extendedVideoError
+            };
+            Object.keys(t).forEach((e => {
+                z.addEventListener(e, (n => {
+                    Z.track(t[e], n)
+                }))
+            }))
+        }
+        static pushEvent(e, t, n) {
+            Q.pokiGTM.push({
+                event: `${e}-${t}`,
+                eventNoun: e,
+                eventVerb: t,
+                eventData: n || {}
+            })
+        }
+        static setRequireConsent(e) {
+            Z.cmpRequired = e, Z.setupObserverIfCMP()
+        }
+        static setupObserverWithCMP(e) {
+            Z.cmpIndex = e, Z.setupObserverIfCMP()
+        }
+        static setupObserverIfCMP() {
+            if (void 0 !== Z.cmpRequired && void 0 !== Z.cmpIndex)
+                if (Z.cmpRequired) {
+                    if (!window.__tcfapi) return void console.error("%cPOKI:%c PokiSDK.enableEventTracking() was called but no CMP is present.", "font-weight: bold", "");
+                    window.__tcfapi("addEventListener", 2, ((e, t) => {
+                        !t || "tcloaded" !== e.eventStatus && "useractioncomplete" !== e.eventStatus || (window.__tcfapi("getNonIABVendorConsents", 2, (e => {
+                            e && e.nonIabVendorConsents && e.nonIabVendorConsents[Z.cmpIndex || 0] && Z.setupObserver()
+                        })), window.__tcfapi("removeEventListener", 2, (() => {}), e.listenerId))
+                    }))
+                } else Z.setupObserver()
+        }
+        static setupObserver() {
+            for (Q._pokiSessionGlobalName = "pokiSession", Q._pokiUserGlobalName = "pokiUser", Q._pokiContextGlobalName = "pokiContext", Q._pokiTrackerGlobalName = "pokiTracker", P(window.location.pathname, "external", V.contentGameID), function() {
+                    var e, t, i, u, p = null === (e = window[window._pokiUserGlobalName]) || void 0 === e ? void 0 : e.id,
+                        m = (null === (t = window[window._pokiUserGlobalName]) || void 0 === t ? void 0 : t.is_new) || !1,
+                        f = (null === (i = window[window._pokiUserGlobalName]) || void 0 === i ? void 0 : i.version) || 0,
+                        g = (null === (u = window[window._pokiUserGlobalName]) || void 0 === u ? void 0 : u.ttl) || l;
+                    p || (p = n(a), m = "1" === n(s), f = parseInt(n(c), 10) || 0, g = parseInt(n(d), 10) || g), p && function(e) {
+                        if (!/^[A-Za-z0-9-_]+$/.test(e)) return !1;
+                        try {
+                            return 16 === atob(e.replace(/-/g, "+").replace(/_/g, "/")).length
+                        } catch (e) {
+                            return !1
+                        }
+                    }(p) || (p = r(), m = !0, f = 2, g = l), o(a, p, g), o(s, m ? "1" : "0", g), o(c, f, g), o(d, g, g), window[window._pokiUserGlobalName] = {
+                        id: p,
+                        is_new: m,
+                        version: f,
+                        ttl: g
+                    }
+                }(), Q[Q._pokiSessionGlobalName].referrer = V.referrerParam, Q[Q._pokiContextGlobalName] = {
+                    tag: null,
+                    site: {
+                        id: null,
+                        domain: window.location.hostname,
+                        prefix: ""
+                    },
+                    page: {
+                        id: V.contentGameID,
+                        type: "external",
+                        path: window.location.pathname,
+                        pageview_id: r()
+                    },
+                    user: Q[Q._pokiUserGlobalName],
+                    session: Q[Q._pokiSessionGlobalName]
+                }, Q.pokiGTM = Q.pokiGTM || [], W("https://a.poki-cdn.com/t2.js"), Z.logToObserver = !0; Z.eventQueue.length;) {
+                const [e, t, n] = Z.eventQueue.shift();
+                Z.pushEvent(e, t, n)
+            }
+        }
+    }
+
+    function X() {
+        const e = window,
+            t = [];
+        return "function" != typeof e.ga && "function" != typeof e.gtag || t.push("ga"), e.mixpanel && "function" == typeof e.mixpanel.track && t.push("mixpanel"), "function" == typeof e.GameAnalytics && t.push("gameanalytics"), (e.kongregateAPI || e.kongregate) && t.push("kongregate"), e.FlurryAgent && t.push("flurry"), e.Countly && t.push("countly"), e.amplitude && t.push("amplitude"), t
+    }
+
+    function ee(e) {
+        switch (Object.prototype.toString.call(e)) {
+            case "[object Error]":
+            case "[object Exception]":
+            case "[object DOMException]":
+                return !0;
+            default:
+                return e instanceof Error
+        }
+    }
+
+    function te(e) {
+        try {
+            const t = new WeakSet;
+            return JSON.stringify(e, ((e, n) => {
+                if ("object" == typeof n && null !== n) {
+                    if (t.has(n)) return "[Circular]";
+                    t.add(n)
+                }
+                return n
+            }))
+        } catch {
+            try {
+                return e.toString()
+            } catch {
+                return "[Object]"
+            }
+        }
+    }
+    let ne;
+
+    function oe() {
+        return ne
+    }
+    const re = [],
+        ie = function(e) {
+            let t = !1,
+                n = 0;
+            return o => {
+                if (t) return void n++;
+                t = !0, setTimeout((() => {
+                    t = !1
+                }), e);
+                const r = n;
+                n = 0, o(r)
+            }
+        }(100),
+        ae = console.error,
+        se = ["Audio callback had starved sending audio by"];
+    let ce = !1;
+    const de = Math.random().toString(36).substring(2);
+    let le;
+
+    function ue() {
+        const e = window;
+        if (e.config?.unityVersion) return e.config.unityVersion;
+        if (e.Phaser?.VERSION) return e.Phaser.VERSION;
+        if (e.pc?.version) return e.pc.version;
+        if (e.Module?.engineVersion) return e.Module.engineVersion;
+        const t = oe();
+        return t || void 0
+    }
+
+    function pe(e, t = !0) {
+        V.gameID && !V.isPlayground ? ie((t => {
+            try {
+                const n = e.message || te(e);
+                re.push({
+                    n: e.name,
+                    m: n,
+                    s: JSON.stringify(e.stack)
+                }), le && le({
+                    name: e.name,
+                    message: n,
+                    stack: e.stack
                 });
-              }),
-              (this.rewardedBreak = function (e) {
-                return new Promise(function (i) {
-                  var r = n.ads.position.rewarded;
-                  o.clearAnnotations(),
-                    o.setDataAnnotations({
-                      opportunityId: Ke(),
-                      position: r,
+                const o = JSON.stringify({
+                        gid: V.gameID,
+                        vid: V.versionID,
+                        ve: 7,
+                        n: e.name,
+                        m: n + (t ? ` (skipped ${t} errors)` : ""),
+                        s: JSON.stringify(e.stack),
+                        ui: de,
+                        ev: `${ue()}`
                     }),
-                    dt.track(n.tracking.screen.rewardedBreak),
-                    t.SDK.requestAd({
-                      position: r,
-                      onFinish: function (e) {
-                        e.length > 0 ? i(e[0].rewardAllowed) : i(!1);
-                      },
-                      onStart: e,
-                    });
-                });
-              }),
-              (this.happyTime = function (e) {
-                void 0 === e && (e = 1),
-                  ((e = Number(e)) < 0 || e > 1) && ((e = Math.max(0, Math.min(1, e))), t.warning("happyTime", "Intensity should be a value between 0 and 1, adjusted to " + e)),
-                  dt.track(n.tracking.screen.happyTime, {
-                    intensity: e,
-                  });
-              }),
-              (this.muteAd = function () {
-                t.SDK.muteAd();
-              }),
-              (this.setPlayerAge = function (e) {
-                e && t.SDK.setPlayerAge(e);
-              }),
-              (this.togglePlayerAdvertisingConsent = function (e) {
-                dt.track(n.tracking.togglePlayerAdvertisingConsent, {
-                  didConsent: e,
-                }),
-                  t.SDK.togglePlayerAdvertisingConsent(e),
-                  rt.sendMessage(n.message.toggleProgrammaticAds, {
-                    enabled: t.SDK.getProgrammaticAdsEnabled(),
-                  });
-              }),
-              (this.displayAd = function (e, i) {
-                o.clearAnnotations();
-                var r = Ke();
-                dt.track(n.tracking.screen.displayAd, {
-                  size: i,
-                  opportunityId: r,
-                  duringGameplay: t.duringGameplay,
-                }),
-                  t.SDK.displayAd(e, i, r, function () {
-                    return t.duringGameplay;
-                  });
-              }),
-              (this.logError = function (t) {
-                At(t)
-                  ? e.report(t)
-                  : ut({
-                      name: "logError",
-                      message: JSON.stringify(t),
-                    });
-              }),
-              (this.sendHighscore = function () {}),
-              (this.setDebugTouchOverlayController = function (e) {
-                t.SDK.debugTouchOverlayController = e;
-              }),
-              (this.getLeaderboard = function () {
-                return Promise.resolve([]);
-              }),
-              (this.getIsoLanguage = function () {
-                return _("iso_lang");
-              }),
-              (this.warning = function (e, t) {
-                console.warn("PokiSDK." + e + ": " + t);
-              }),
-              (this.error = function (e, t) {
-                console.error("PokiSDK." + e + ": " + t);
-              });
-          }
-          return (
-            (t.prototype.setDebug = function (e) {
-              void 0 === e && (e = !0), this.SDK.setDebug(e);
-            }),
-            (t.prototype.disableProgrammatic = function () {
-              this.SDK.disableProgrammatic();
-            }),
-            (t.prototype.toggleNonPersonalized = function (e) {
-              void 0 === e && (e = !1), this.SDK.toggleNonPersonalized(e);
-            }),
-            (t.prototype.setConsentString = function (e) {
-              this.SDK.setConsentString(e);
-            }),
-            (t.prototype.destroyAd = function (e) {
-              this.SDK.destroyAd(e);
-            }),
-            (t.prototype.setVolume = function (e) {
-              this.SDK.setVolume(e);
-            }),
-            t
-          );
-        })();
-      var gt = new mt();
-      for (var vt in gt) window.PokiSDK[vt] = gt[vt];
+                    r = "https://t.poki.io/ge";
+                if (navigator.sendBeacon) navigator.sendBeacon(r, o);
+                else {
+                    const e = new XMLHttpRequest;
+                    e.open("POST", r, !0), e.send(o)
+                }
+            } catch (e) {
+                ae("%cPOKI:%c failed to log error", "font-weight: bold", "", e)
+            }
+        })) : t && console.error("%cPOKI:%c game error", "font-weight: bold", "", e)
+    }
+
+    function me(e) {
+        ee(e.reason) ? pe(e.reason) : pe({
+            name: "unhandledrejection",
+            message: JSON.stringify(e.reason) || te(e)
+        })
+    }
+
+    function fe(e) {
+        ee(e.error) ? pe(e.error) : pe(e)
+    }
+
+    function ge() {
+        if (V.gameID && !V.isPlayground && !V.isPokiExternal && V.isPokiIframe && !ce) {
+            ce = !0, window.addEventListener("unhandledrejection", me), window.addEventListener("error", fe);
+            try {
+                console.error = (...e) => {
+                    const t = te(e);
+                    se.some((e => t.includes(e))) || pe({
+                        name: "console.error",
+                        message: t
+                    }, !1), ae.apply(console, e)
+                }
+            } catch {}
+        }
+    }
+    "undefined" != typeof window && ge();
+    const he = () => {
+        let e = Math.floor(Date.now() / 1e3),
+            t = "";
+        for (let n = 0; n < 4; n++) t = String.fromCharCode(255 & e) + t, e >>= 8;
+        if (window.crypto && crypto.getRandomValues && Uint32Array) {
+            const e = new Uint32Array(12);
+            crypto.getRandomValues(e);
+            for (let n = 0; n < 12; n++) t += String.fromCharCode(255 & e[n])
+        } else
+            for (let e = 0; e < 12; e++) t += String.fromCharCode(Math.floor(256 * Math.random()));
+        return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+    };
+    var ye;
+    ! function(e) {
+        e.SMALL = "small", e.MEDIUM = "medium", e.LARGE = "large"
+    }(ye || (ye = {}));
+    const we = window.requestAnimationFrame;
+
+    function ve(e) {
+        return Math.round(100 * e) / 100
+    }
+    class be {
+        #e = [];
+        #t = 0;
+        #n;
+        constructor(e) {
+            Math.random() > e || (this.#n = performance.now() + 1e3, we((() => {
+                this.#o()
+            })))
+        }
+        #o() {
+            const e = performance.now();
+            for (; e >= this.#n;) this.#e.unshift(this.#t), this.#e.length > 10 && this.#e.pop(), this.#t = 0, this.#n += 1e3;
+            this.#t++, we((() => {
+                this.#o()
+            }))
+        }
+        stats() {
+            if (0 === this.#e.length) return;
+            const e = Math.min(...this.#e),
+                t = Math.max(...this.#e),
+                n = ve(this.#e.reduce(((e, t) => e + t), 0) / this.#e.length);
+            let o = ve(this.#e.slice(1).map(((e, t) => Math.abs(e - this.#e[t]))).reduce(((e, t) => e + t), 0) / (this.#e.length - 1));
+            return Number.isNaN(o) && (o = 0), `${e}|${t}|${n}|${o}`
+        }
+    }
+    const ke = Math.random().toString(36).substring(2);
+    async function Ae() {
+        const e = await window.cookieStore.getAll(),
+            t = window.indexedDB.databases ? await window.indexedDB.databases() : [];
+        return [...e.map((e => ({
+            name: e.name,
+            expire_seconds: Math.round((e.expires - Date.now()) / 1e3),
+            type: "cookie",
+            domain: e.domain
+        }))), ...Object.keys(window.localStorage).map((e => ({
+            name: e,
+            expire_seconds: 15552e3,
+            type: "localStorage"
+        }))), ...t.map((e => ({
+            name: e.name,
+            expire_seconds: 0,
+            type: "idb"
+        })))]
+    }
+    class Se {
+        static async collectAndLog() {
+            try {
+                const e = {
+                    cookies: await Ae(),
+                    p4d_game_id: V.gameID,
+                    user_id: ke
+                };
+                fetch("https://t.poki.io/game-cookies", {
+                    method: "post",
+                    body: JSON.stringify(e)
+                }).catch()
+            } catch {}
+        }
+        static trackSavegames() {
+            window.cookieStore && window.cookieStore.getAll && V.gameID && (Math.random() > .01 || navigator.userAgent.indexOf("Safari") > -1 && navigator.userAgent.indexOf("Chrome") <= -1 || (Se.collectAndLog(), setInterval(Se.collectAndLog, 12e4)))
+        }
+    }
+    const Ee = (() => {
+        let e = 0;
+        return () => (e += 1, `u${`0000${((36*Math.random())**4|0).toString(36)}`.slice(-4)}${e}`)
     })();
+
+    function Ie(e) {
+        const t = [];
+        for (let n = 0, o = e.length; n < o; n++) t.push(e[n]);
+        return t
+    }
+
+    function _e(e) {
+        return "style" in e
+    }
+    const Pe = (e, t) => {
+            if (e instanceof t) return !0;
+            const n = Object.getPrototypeOf(e);
+            return null !== n && (n.constructor.name === t.name || Pe(n, t))
+        },
+        Te = new Set(["cx", "cy", "x", "y", "r", "rx", "ry", "d", "fill", "alignment-baseline", "baseline-shift", "clip-rule", "color-interpolation", "color-interpolation-filters", "color-rendering", "dominant-baseline", "fill-opacity", "fill-rule", "flood-color", "flood-opacity", "glyph-orientation-horizontal", "glyph-orientation-vertical", "lighting-color", "marker-end", "marker-mid", "marker-start", "paint-order", "shape-rendering", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "text-anchor", "vector-effect"]),
+        xe = {
+            html: void 0,
+            svg: void 0
+        };
+
+    function Oe(e, t = {}) {
+        const n = Pe(e, SVGElement) ? "svg" : "html",
+            o = xe[n];
+        if (o) return o;
+        const r = t.includeStyleProperties ?? Ie(window.getComputedStyle(document.documentElement)),
+            i = "html" === n ? r.filter((e => !Te.has(e))) : [...r];
+        return xe[n] = i, i
+    }
+
+    function Ce(e, t) {
+        const n = (e.ownerDocument.defaultView || window).getComputedStyle(e).getPropertyValue(t);
+        return n ? parseFloat(n.replace("px", "")) : 0
+    }
+
+    function De(e, t = {}) {
+        return {
+            width: t.width || function(e) {
+                const t = Ce(e, "border-left-width"),
+                    n = Ce(e, "border-right-width");
+                return e.clientWidth + t + n
+            }(e),
+            height: t.height || function(e) {
+                const t = Ce(e, "border-top-width"),
+                    n = Ce(e, "border-bottom-width");
+                return e.clientHeight + t + n
+            }(e)
+        }
+    }
+    const Le = 16384;
+
+    function Me(e) {
+        return new Promise(((t, n) => {
+            const o = new Image;
+            o.decode = () => t(o), o.onload = () => t(o), o.onerror = n, o.crossOrigin = "anonymous", o.decoding = "async", o.src = e
+        }))
+    }
+    async function Ne(e, t, n) {
+        const o = "http://www.w3.org/2000/svg",
+            r = document.createElementNS(o, "svg"),
+            i = document.createElementNS(o, "foreignObject");
+        return r.setAttribute("width", `${t}`), r.setAttribute("height", `${n}`), r.setAttribute("viewBox", `0 0 ${t} ${n}`), i.setAttribute("width", "100%"), i.setAttribute("height", "100%"), i.setAttribute("x", "0"), i.setAttribute("y", "0"), i.setAttribute("externalResourcesRequired", "true"), r.appendChild(i), i.appendChild(e), async function(e) {
+            return Promise.resolve().then((() => (new XMLSerializer).serializeToString(e))).then(encodeURIComponent).then((e => `data:image/svg+xml;charset=utf-8,${e}`))
+        }(r)
+    }
+
+    function Be(e, t, n, o) {
+        const r = `.${e}:${t}`,
+            i = n.cssText ? function(e) {
+                const t = e.getPropertyValue("content");
+                return `${e.cssText} content: '${t.replace(/'|"/g,"")}';`
+            }(n) : function(e, t) {
+                return Oe(document.documentElement, t).map((t => `${t}: ${e.getPropertyValue(t)}${e.getPropertyPriority(t)?" !important":""};`)).join(" ")
+            }(n, o);
+        return document.createTextNode(`${r}{${i}}`)
+    }
+
+    function Re(e, t, n, o) {
+        const r = window.getComputedStyle(e, n),
+            i = r.getPropertyValue("content");
+        if ("" === i || "none" === i) return;
+        const a = Ee();
+        try {
+            t.className = `${t.className} ${a}`
+        } catch {
+            return
+        }
+        const s = document.createElement("style");
+        s.appendChild(Be(a, n, r, o)), t.appendChild(s)
+    }
+    const je = "application/font-woff",
+        Ve = "image/jpeg",
+        Ge = {
+            woff: je,
+            woff2: je,
+            ttf: "application/font-truetype",
+            eot: "application/vnd.ms-fontobject",
+            png: "image/png",
+            jpg: Ve,
+            jpeg: Ve,
+            gif: "image/gif",
+            tiff: "image/tiff",
+            svg: "image/svg+xml",
+            webp: "image/webp"
+        };
+
+    function Fe(e) {
+        const t = function(e) {
+            const t = /\.([^./]*?)$/g.exec(e);
+            return t ? t[1] : ""
+        }(e).toLowerCase();
+        return Ge[t] || ""
+    }
+
+    function Ue(e) {
+        return -1 !== e.search(/^(data:)/)
+    }
+
+    function Ke(e, t) {
+        return `data:${t};base64,${e}`
+    }
+    async function ze(e, t, n) {
+        const o = await fetch(e, t);
+        if (404 === o.status) throw new Error(`Resource "${o.url}" not found`);
+        const r = await o.blob();
+        return new Promise(((e, t) => {
+            const i = new FileReader;
+            i.onerror = t, i.onloadend = () => {
+                try {
+                    e(n({
+                        res: o,
+                        result: i.result
+                    }))
+                } catch (e) {
+                    t(e)
+                }
+            }, i.readAsDataURL(r)
+        }))
+    }
+    const He = {};
+    async function qe(e, t, n) {
+        const o = function(e, t, n) {
+            let o = e.replace(/\?.*/, "");
+            return n && (o = e), /ttf|otf|eot|woff2?/i.test(o) && (o = o.replace(/.*\//, "")), t ? `[${t}]${o}` : o
+        }(e, t, n.includeQueryParams);
+        if (null != He[o]) return He[o];
+        let r;
+        n.cacheBust && (e += (/\?/.test(e) ? "&" : "?") + (new Date).getTime());
+        try {
+            const o = await ze(e, n.fetchRequestInit, (({
+                res: e,
+                result: n
+            }) => (t || (t = e.headers.get("Content-Type") || ""), function(e) {
+                return e.split(/,/)[1]
+            }(n))));
+            r = Ke(o, t)
+        } catch (t) {
+            r = n.imagePlaceholder || "";
+            let o = `Failed to fetch resource: ${e}`;
+            t && (o = "string" == typeof t ? t : t.message), o && console.warn("%cPOKI:%c failed to fetch resource", "font-weight: bold", "", o)
+        }
+        return He[o] = r, r
+    }
+    async function Ye(e, t) {
+        return Pe(e, HTMLCanvasElement) ? async function(e) {
+            try {
+                if (e.getContext("2d")) return Me(e.toDataURL())
+            } catch {}
+            if (0 === e.width || 0 === e.height) return Me("data:,");
+            const t = document.createElement("canvas").getContext("2d", {
+                alpha: !0
+            });
+            t.canvas.width = e.width, t.canvas.height = e.height;
+            const n = t.getImageData(0, 0, t.canvas.width, t.canvas.height);
+            return Me(await new Promise((o => {
+                try {
+                    requestAnimationFrame((() => {
+                        const r = document.createElement("canvas").getContext("webgl2"),
+                            i = r.createTexture(),
+                            a = r.createFramebuffer();
+                        r.bindTexture(r.TEXTURE_2D, i), r.bindFramebuffer(r.FRAMEBUFFER, a), r.texImage2D(r.TEXTURE_2D, 0, r.RGBA, r.RGBA, r.UNSIGNED_BYTE, e), r.framebufferTexture2D(r.FRAMEBUFFER, r.COLOR_ATTACHMENT0, r.TEXTURE_2D, i, 0), r.readPixels(0, 0, e.width, e.height, r.RGBA, r.UNSIGNED_BYTE, new Uint8Array(n.data.buffer)), t.putImageData(n, 0, 0), r.deleteTexture(i), r.deleteFramebuffer(a);
+                        const s = r.getExtension("WEBGL_lose_context");
+                        s && s.loseContext(), o(t.canvas.toDataURL())
+                    }))
+                } catch {
+                    o("data:,")
+                }
+            })))
+        }(e): Pe(e, HTMLVideoElement) ? async function(e, t) {
+            if (e.currentSrc) {
+                const t = document.createElement("canvas"),
+                    n = t.getContext("2d");
+                return t.width = e.clientWidth, t.height = e.clientHeight, n?.drawImage(e, 0, 0, t.width, t.height), Me(t.toDataURL())
+            }
+            const {
+                poster: n
+            } = e, o = Fe(n);
+            return Me(await qe(n, o, t))
+        }(e, t): Pe(e, HTMLIFrameElement) ? async function(e, t) {
+            try {
+                if (e?.contentDocument?.body) return await Ze(e.contentDocument.body, t, !0)
+            } catch {}
+            return e.cloneNode(!1)
+        }(e, t): e.cloneNode($e(e))
+    }
+    const We = e => "SLOT" === e.tagName?.toUpperCase(),
+        $e = e => null != e.tagName && "SVG" === e.tagName.toUpperCase();
+
+    function Je(e, t, n) {
+        return function(e, t, n) {
+            const o = t.style;
+            if (!o) return;
+            const r = window.getComputedStyle(e);
+            r.cssText ? (o.cssText = r.cssText, o.transformOrigin = r.transformOrigin) : Oe(e, n).forEach((n => {
+                let i = r.getPropertyValue(n);
+                if ("font-size" === n && i.endsWith("px")) {
+                    const e = Math.floor(parseFloat(i.substring(0, i.length - 2))) - .1;
+                    i = `${e}px`
+                }
+                Pe(e, HTMLIFrameElement) && "display" === n && "inline" === i && (i = "block"), "d" === n && t.getAttribute("d") && (i = `path(${t.getAttribute("d")})`), o.setProperty(n, i, r.getPropertyPriority(n))
+            }))
+        }(e, t, n), Pe(e, HTMLElement) && Pe(t, HTMLElement) && (function(e, t) {
+            Pe(e, HTMLTextAreaElement) && (t.innerHTML = e.value), Pe(e, HTMLInputElement) && t.setAttribute("value", e.value)
+        }(e, t), function(e, t) {
+            if (Pe(e, HTMLSelectElement)) {
+                const n = t,
+                    o = Array.from(n.children).find((t => e.value === t.getAttribute("value")));
+                o && o.setAttribute("selected", "")
+            }
+        }(e, t), function(e, t, n) {
+            Re(e, t, ":before", n), Re(e, t, ":after", n)
+        }(e, t, n), n.patchScroll) ? function(e, t) {
+            if (0 === e.scrollTop && 0 === e.scrollLeft || !t.children) return t;
+            for (let n = 0; n < t.children.length; n += 1) {
+                const o = t.children[n];
+                if (!o.children) continue;
+                const {
+                    transform: r
+                } = o.style, i = new DOMMatrix(r), {
+                    a: a,
+                    b: s,
+                    c: c,
+                    d: d
+                } = i;
+                i.a = 1, i.b = 0, i.c = 0, i.d = 1, i.translateSelf(-e.scrollLeft, -e.scrollTop), i.a = a, i.b = s, i.c = c, i.d = d, o.style.transform = i.toString()
+            }
+            return t
+        }(e, t) : t
+    }
+    let Qe = 0;
+    async function Ze(e, t, n) {
+        return n || !t.filter || t.filter(e) ? _e(e) ? (Qe++, Qe % 5 == 0 && await (o = 0, e => new Promise((t => {
+            setTimeout((() => t(e)), o)
+        }))), Promise.resolve(e).then((e => Ye(e, t))).then((n => async function(e, t, n) {
+            if ($e(t)) return t;
+            let o = [];
+            return o = We(e) && e.assignedNodes ? Ie(e.assignedNodes()) : Pe(e, HTMLIFrameElement) && e.contentDocument?.body ? Ie(e.contentDocument.body.childNodes) : Ie(("shadowRoot" in e ? e.shadowRoot ?? e : e).childNodes), 0 === o.length || Pe(e, HTMLVideoElement) || await o.reduce(((e, o) => e.then((() => Ze(o, n))).then((e => {
+                e && t.appendChild(e)
+            }))), Promise.resolve()), t
+        }(e, n, t))).then((n => Je(e, n, t))).then((e => async function(e, t) {
+            const n = e.querySelectorAll ? e.querySelectorAll("use") : [];
+            if (0 === n.length) return e;
+            const o = {};
+            for (let r = 0; r < n.length; r++) {
+                const i = n[r].getAttribute("xlink:href");
+                if (i) {
+                    const n = e.querySelector(i),
+                        r = document.querySelector(i);
+                    n || !r || o[i] || (o[i] = await Ze(r, t, !0))
+                }
+            }
+            const r = Object.values(o);
+            if (r.length) {
+                const t = "http://www.w3.org/1999/xhtml",
+                    n = document.createElementNS(t, "svg");
+                n.setAttribute("xmlns", t), n.style.position = "absolute", n.style.width = "0", n.style.height = "0", n.style.overflow = "hidden", n.style.display = "none";
+                const o = document.createElementNS(t, "defs");
+                n.appendChild(o);
+                for (let e = 0; e < r.length; e++) o.appendChild(r[e]);
+                e.appendChild(n)
+            }
+            return e
+        }(e, t)))) : e.cloneNode(!1) : null;
+        var o
+    }
+    const Xe = /url\((['"]?)([^'"]+?)\1\)/g,
+        et = /url\([^)]+\)\s*format\((["']?)([^"']+)\1\)/g,
+        tt = /src:\s*(?:url\([^)]+\)\s*format\([^)]+\)[,;]\s*)+/g;
+    async function nt(e, t, n, o, r) {
+        try {
+            const i = n ? function(e, t) {
+                    if (e.match(/^[a-z]+:\/\//i)) return e;
+                    if (e.match(/^\/\//)) return window.location.protocol + e;
+                    if (e.match(/^[a-z]+:/i)) return e;
+                    const n = document.implementation.createHTMLDocument(),
+                        o = n.createElement("base"),
+                        r = n.createElement("a");
+                    return n.head.appendChild(o), n.body.appendChild(r), t && (o.href = t), r.href = e, r.href
+                }(t, n) : t,
+                a = Fe(t);
+            let s;
+            if (r) {
+                s = Ke(await r(i), a)
+            } else s = await qe(i, a, o);
+            return e.replace(function(e) {
+                const t = e.replace(/([.*+?^${}()|\[\]\/\\])/g, "\\$1");
+                return new RegExp(`(url\\(['"]?)(${t})(['"]?\\))`, "g")
+            }(t), `$1${s}$3`)
+        } catch {}
+        return e
+    }
+
+    function ot(e) {
+        return -1 !== e.search(Xe)
+    }
+    async function rt(e, t, n) {
+        if (!ot(e)) return e;
+        const o = function(e, {
+                preferredFontFormat: t
+            }) {
+                return t ? e.replace(tt, (e => {
+                    for (;;) {
+                        const [n, , o] = et.exec(e) || [];
+                        if (!o) return "";
+                        if (o === t) return `src: ${n};`
+                    }
+                })) : e
+            }(e, n),
+            r = function(e) {
+                const t = [];
+                return e.replace(Xe, ((e, n, o) => (t.push(o), e))), t.filter((e => !Ue(e)))
+            }(o);
+        return r.reduce(((e, o) => e.then((e => nt(e, o, t, n)))), Promise.resolve(o))
+    }
+    async function it(e, t, n) {
+        const o = t.style?.getPropertyValue(e);
+        if (o) {
+            const r = await rt(o, null, n);
+            return t.style.setProperty(e, r, t.style.getPropertyPriority(e)), !0
+        }
+        return !1
+    }
+    async function at(e, t) {
+        _e(e) && (await async function(e, t) {
+            await it("background", e, t) || await it("background-image", e, t), await it("mask", e, t) || await it("mask-image", e, t)
+        }(e, t), await async function(e, t) {
+            const n = Pe(e, HTMLImageElement),
+                o = Pe(e, SVGImageElement);
+            if ((!n || Ue(e.src)) && (!o || Ue(e.href.baseVal))) return;
+            const r = n ? e.src : e.href.baseVal,
+                i = await qe(r, Fe(r), t);
+            await new Promise(((t, o) => {
+                e.onload = t, e.onerror = o;
+                const r = e;
+                r.decode && (r.decode = t), "lazy" === r.loading && (r.loading = "eager"), n ? (e.srcset = "", e.src = i) : e.href.baseVal = i
+            }))
+        }(e, t), await async function(e, t) {
+            const n = Ie(e.childNodes).map((e => at(e, t)));
+            await Promise.all(n).then((() => e))
+        }(e, t))
+    }
+    const st = {};
+    async function ct(e) {
+        let t = st[e];
+        if (null != t) return t;
+        const n = await fetch(e);
+        return t = {
+            url: e,
+            cssText: await n.text()
+        }, st[e] = t, t
+    }
+    async function dt(e, t) {
+        let {
+            cssText: n
+        } = e;
+        const o = /url\(["']?([^"')]+)["']?\)/g,
+            r = (n.match(/url\([^)]+\)/g) || []).map((async r => {
+                let i = r.replace(o, "$1");
+                return i.startsWith("https://") || (i = new URL(i, e.url).href), ze(i, t.fetchRequestInit, (({
+                    result: e
+                }) => (n = n.replace(r, `url(${e})`), [r, e])))
+            }));
+        return Promise.all(r).then((() => n))
+    }
+
+    function lt(e) {
+        if (null == e) return [];
+        const t = [];
+        let n = e.replace(/(\/\*[\s\S]*?\*\/)/gi, "");
+        const o = new RegExp("((@.*?keyframes [\\s\\S]*?){([\\s\\S]*?}\\s*?)})", "gi");
+        for (;;) {
+            const e = o.exec(n);
+            if (null === e) break;
+            t.push(e[0])
+        }
+        n = n.replace(o, "");
+        const r = /@import[\s\S]*?url\([^)]*\)[\s\S]*?;/gi,
+            i = new RegExp("((\\s*?(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*?@media[\\s\\S]*?){([\\s\\S]*?)}\\s*?})|(([\\s\\S]*?){([\\s\\S]*?)})", "gi");
+        for (;;) {
+            let e = r.exec(n);
+            if (null === e) {
+                if (e = i.exec(n), null === e) break;
+                r.lastIndex = i.lastIndex
+            } else i.lastIndex = r.lastIndex;
+            t.push(e[0])
+        }
+        return t
+    }
+    async function ut(e, t) {
+        if (null == e.ownerDocument) throw new Error("Provided element is not within a Document");
+        const n = Ie(e.ownerDocument.styleSheets),
+            o = await async function(e, t) {
+                const n = [],
+                    o = [];
+                return e.forEach((n => {
+                    if ("cssRules" in n) try {
+                        Ie(n.cssRules || []).forEach(((e, r) => {
+                            if (e instanceof CSSImportRule) {
+                                let i = r + 1;
+                                const a = ct(e.href).then((e => dt(e, t))).then((e => lt(e).forEach((e => {
+                                    try {
+                                        n.insertRule(e, e.startsWith("@import") ? i += 1 : n.cssRules.length)
+                                    } catch (t) {
+                                        console.error("Error inserting rule from remote css", {
+                                            rule2: e,
+                                            err: t
+                                        })
+                                    }
+                                })))).catch((e => {
+                                    console.error("Error loading remote css", e.toString())
+                                }));
+                                o.push(a)
+                            }
+                        }))
+                    } catch (r) {
+                        const i = e.find((e => null == e.href)) || document.styleSheets[0];
+                        null != n.href && o.push(ct(n.href).then((e => dt(e, t))).then((e => lt(e).forEach((e => {
+                            i.insertRule(e, i.cssRules.length)
+                        })))).catch((e => {
+                            console.error("Error loading remote stylesheet", e)
+                        }))), console.error("Error inlining remote css file", r)
+                    }
+                })), Promise.all(o).then((() => (e.forEach((e => {
+                    if ("cssRules" in e) try {
+                        Ie(e.cssRules || []).forEach((e => {
+                            n.push(e)
+                        }))
+                    } catch (t) {
+                        console.error(`Error while reading CSS rules from ${e.href}`, t)
+                    }
+                })), n)))
+            }(n, t);
+        return function(e) {
+            return e.filter((e => e instanceof CSSFontFaceRule)).filter((e => ot(e.style.getPropertyValue("src"))))
+        }(o)
+    }
+    async function pt(e, t) {
+        const n = null != t.fontEmbedCSS ? t.fontEmbedCSS : t.skipFonts ? null : await async function(e, t) {
+            const n = await ut(e, t);
+            return (await Promise.all(n.map((e => {
+                const n = e.parentStyleSheet ? e.parentStyleSheet.href : null;
+                return rt(e.cssText, n, t)
+            })))).join("\n")
+        }(e, t);
+        if (n) {
+            const t = document.createElement("style"),
+                o = document.createTextNode(n);
+            t.appendChild(o), e.firstChild ? e.insertBefore(t, e.firstChild) : e.appendChild(t)
+        }
+    }
+    async function mt(e, t = {}) {
+        const {
+            width: n,
+            height: o
+        } = De(e, t), r = await Ze(e, t, !0);
+        await pt(r, t), await at(r, t),
+            function(e, t) {
+                const {
+                    style: n
+                } = e;
+                t.backgroundColor && (n.backgroundColor = t.backgroundColor), t.width && (n.width = `${t.width}px`), t.height && (n.height = `${t.height}px`);
+                const o = t.style;
+                null != o && Object.keys(o).forEach((e => {
+                    n[e] = o[e]
+                }))
+            }(r, t);
+        return await Ne(r, n, o)
+    }
+    async function ft(e, t = {}) {
+        const {
+            width: n,
+            height: o
+        } = De(e, t), r = await mt(e, t), i = await Me(r), a = document.createElement("canvas"), s = a.getContext("2d"), c = window.devicePixelRatio || 1, d = t.canvasWidth || n, l = t.canvasHeight || o;
+        return a.width = d * c, a.height = l * c, t.skipAutoScale || function(e) {
+            (e.width > Le || e.height > Le) && (e.width > Le && e.height > Le ? e.width > e.height ? (e.height *= Le / e.width, e.width = Le) : (e.width *= Le / e.height, e.height = Le) : e.width > Le ? (e.height *= Le / e.width, e.width = Le) : (e.width *= Le / e.height, e.height = Le))
+        }(a), a.style.width = `${d}`, a.style.height = `${l}`, t.backgroundColor && (s.fillStyle = t.backgroundColor, s.fillRect(0, 0, a.width, a.height)), s.drawImage(i, 0, 0, a.width, a.height), a
+    }
+    async function gt(e, t = {}) {
+        return (await ft(e, t)).toDataURL()
+    }
+    const ht = "pokiSdkContainer";
+    async function yt(e, t = {}, n = 5e3) {
+        const o = new AbortController,
+            {
+                signal: r
+            } = o,
+            i = {
+                ...t,
+                signal: r
+            };
+        let a = null;
+        const s = new Promise(((e, t) => {
+            a = setTimeout((() => {
+                o.abort(), t(new DOMException(`Signal timed out after ${n}ms`, "AbortError"))
+            }), n)
+        }));
+        try {
+            const t = await Promise.race([fetch(e, i), s]);
+            return a && clearTimeout(a), t
+        } catch (t) {
+            throw a && clearTimeout(a), t instanceof Error && "AbortError" === t.name ? (console.error(`%cPOKI:%c fetchWithTimeout: Fetch aborted for ${e}. Error: ${t.message}`), t) : t instanceof Error ? (console.error(`%cPOKI:%c fetchWithTimeout: Fetch error for ${e}:`, t.message), t) : (console.error(`%cPOKI:%c fetchWithTimeout: An unexpected error occurred for ${e}:`, t), new Error("An unexpected fetch error occurred."))
+        }
+    }
+    const wt = async e => {
+        const {
+            screenshot: t
+        } = e, n = await yt("https://api.poki.io/screenshot", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                data: t,
+                p4d_game_id: V.gameID,
+                p4d_version_id: V.versionID
+            })
+        }, 3e4);
+        try {
+            if (200 === n.status) {
+                return "https://poki-user-content.com/" + (await n.json()).source
+            }
+        } catch {}
+        return null
+    }, vt = async () => {
+        const e = e => !["VIDEO", "TEXTAREA", "SCRIPT", "NOSCRIPT", "INPUT", "IFRAME"].includes(e.nodeName) && (!("IMG" === e.nodeName && !e.getAttribute("src")) && !e.classList?.contains(ht)),
+            t = document.body.style.minWidth,
+            n = document.body.style.minHeight;
+        document.body.style.minWidth = "100%", document.body.style.minHeight = "100%";
+        let o = await gt(document.body, {
+            filter: e,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: "#fff"
+        });
+        if (o && o.length < 10) {
+            const t = document.body.style.position;
+            document.body.style.position = "fixed", o = await gt(document.body, {
+                filter: e,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: "#fff"
+            }), document.body.style.position = t
+        }
+        return document.body.style.minWidth = t, document.body.style.minHeight = n, o
+    }, bt = async (e = null) => {
+        let t = await vt();
+        if (t && t.length > 10) {
+            e && (t = await (async (e, t) => {
+                const {
+                    title: n,
+                    thumbnail: o
+                } = t, r = new Image;
+                r.crossOrigin = "Anonymous";
+                const i = new Promise((e => {
+                    r.onload = () => e(r)
+                }));
+                r.src = e;
+                const a = new Image;
+                a.crossOrigin = "Anonymous";
+                const s = new Promise((e => {
+                    a.onload = () => e(a)
+                }));
+                a.src = "https://a.poki-cdn.com/images/screenshot-frame.png";
+                const c = new Image;
+                c.crossOrigin = "Anonymous";
+                const d = new Promise((e => {
+                    c.onload = () => e(c)
+                }));
+                c.src = `https://img.poki-cdn.com/cdn-cgi/image/quality=78,width=128,height=128,fit=cover,f=auto/${o}`;
+                const l = new FontFace("TorusBold", "url(https://a.poki-cdn.com/fonts/torus-bold-latin.woff2)").load(),
+                    [u, p, m, f] = await Promise.all([i, s, d, l]),
+                    g = document.createElement("canvas");
+                g.width = u.width, g.height = u.height;
+                const h = g.getContext("2d");
+                h.drawImage(u, 0, 0);
+                const y = g.width / p.width,
+                    w = p.height * y,
+                    v = g.height - w;
+                h.drawImage(p, 0, v, g.width, w);
+                const b = m.height * y;
+                ((e, t, n, o, r, i, a) => {
+                    e.save(), e.beginPath();
+                    const s = n + r,
+                        c = o + i;
+                    e.moveTo(n + a, o), e.lineTo(s - a, o), e.quadraticCurveTo(s, o, s, o + a), e.lineTo(s, c - a), e.quadraticCurveTo(s, c, s - a, c), e.lineTo(n + a, c), e.quadraticCurveTo(n, c, n, c - a), e.lineTo(n, o + a), e.quadraticCurveTo(n, o, n + a, o), e.closePath(), e.clip(), e.drawImage(t, n, o, r, i), e.restore()
+                })(h, m, 64 * y, v + 20 * y, b, b, 24 * y);
+                const {
+                    fonts: k
+                } = document;
+                k.add(f);
+                const A = 226 * y,
+                    S = v + 68 * y;
+                return h.textAlign = "left", h.textBaseline = "top", h.fillStyle = "#002b50", h.font = `700 ${56*y}px TorusBold,sans-serif`, h.fillText(n, A, S), g.toDataURL()
+            })(t, e));
+            return await wt({
+                screenshot: t
+            })
+        }
+        return null
+    };
+
+    function kt() {
+        let e;
+        try {
+            e = performance.getEntriesByType("resource").map((e => e.encodedBodySize)).reduce(((e, t) => e + t)), e += performance.getEntriesByType("navigation")[0].encodedBodySize
+        } catch {}
+        return e
+    }
+    const At = "once",
+        St = "force",
+        Et = "on",
+        It = "off";
+    let _t = [],
+        Pt = "";
+
+    function Tt() {
+        return _t
+    }
+
+    function xt(e) {
+        _t = e
+    }
+
+    function Ot() {
+        return Pt
+    }
+
+    function Ct(e) {
+        if ("" !== e && e !== At && e !== St && e !== Et && e !== It) throw new Error(`Invalid playtest capture mode: ${e}`);
+        Pt = e
+    }
+    const Dt = "MacIntel" === window.navigator.platform && void 0 !== window.navigator.standalone && navigator.maxTouchPoints > 1,
+        Lt = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const Mt = C() || D() || Dt;
+    let Nt = !1;
+    const Bt = new Image;
+    Bt.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAdCAYAAACqhkzFAAADE2lDQ1BJQ0MgcHJvZmlsZQAAeNp9kk9s21Qcxz+2X92qCh4qYRqoqnIAKqoNma6gbkAhadI/tOuyJB1t4IDrOHUSx7ZsZyw9IuAIk+AAJ1BXCQ4cOMDWgZDQDttlEoi/EkIc0DQuO1ExTYIqHOKsOfEu7/s++r7v7/d+eiB2DN93BNB0o6Awn0mtrZdTg38i8TAjPMghwwz9dD6/DNDb+5YEd35GAvjhmOH7zpWvPt3rnJoYe2f/8/GxV3N3+f81XLFCE/gX5C9NP4hA2QXyr0V+BGIISAZr62UQo0Bys6t1ILnR1VkgGZQKsyDWgJRpGxUQ54GjG318s083nZYZ9zAGJIJWYRXQQDofNopLsX7LNHJF4H6Q3rOtxWVAgLTjR5lC7PmkGsytxp5Ldmuhl3OtFi2WYv1jw1sqAMMg/WGGs+XeXXdj5TSQAOl2q7GajvndipXN9TyBV4g9srpll14CVJBHwnPFHDAC8pEte3Yl5hN148V87NctZz6uKz/rR/nT9+o6K8vAYZDnrPDgjZFdWuhq+ZUoKPXuOtXa3GKcec4OFgqxft138su9TCPIzQNJkN+23NVil8vbFSO7FOd8JkbFjHhOTIuMmBEvkKVGiI+DRZ08Bi4RBg4OxsCtge85hYdLjQiPoO9k0SJgiRp1LBy2pDMUMbGxCGjifZG8uvNTYnfoekSRBvUuF0kxLdLiefGMeEqcIE2VmvwQBvX3vfbJszYZajhUCGlwk4BmdaZ98qytX9cv6lf0X/Tb+o7yobKr3FC+Vi6TwcKK/fdqa0PaMS2tTWhJbVAb1R4lR4MAA5cVbtImIuIOZQxCHDxcdUodV6fUx0mp42pWPaE+qT7dNxuDNkUa3CKgCX1/VwIS8ayngFFm8fBpE1BjE5uIFGn8eMYpFnExeYKjpJhEZ5Lja+vlVDdu7wwSIB2+ccC8bZj+G5QLB2zjA7j8Jhz59YA98hEcegMufesbgQGAAsjVKvz1Mdy3Dg98B8Mvh9Xjk93uExkY+L3T2XsMBt+F/Qudzj/bnc7+RVB+g2/c/wD2jOYIAU+O+QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAQpSURBVHjapFZLLFx9FD9z74x2COod72eQUCLSSGhrPOoRFhY23xcaYtdWx6O0lSbNJxQpY6ZtpG2w6aIWFgRhiIVHLBoiLLxJBB2PIMSMx2B6zr+9k2lSH6Mnubn/3HPv75zzO68rSklJKQoPD1fs7u6CwWCAs7MzEIlExvv5+Tl7TufT09PfdPSc9CR6vR54ngd+YWFhxMrK6lZgYKBaq9UaPza9kwjgpjoSQU86juOAx/PLxcXFu9bW1qd+fn5DBwcHfw0ox8tyfn4+3tLSUu/v7z+k0+n+CvA5AdJD9DQBPT1B0GFTT80B5PAsIWVcXBxT9PT0vJmYmHjh5OQE1xEC5MlKU1MTtLa2sofd3d1Vk5OT1wJlScHLIicnB+Lj45nrg4ODFH6ira2tztvbe4Q4NYfDMgJMS0uDoKAgFvrx8TEMDw8DJuqBjY2NlkAPDw+vxqHol0YsFhvdrqqqguLiYnZWq9Vvp6ennzk4OFwpZPFFitraWmakpqaGEvWWnMDiV+zs7FyalAuluroaioqKhOzXzczMFF/mKXdZCHV1dcbwe3t7a+fm5uT/B8pdhRcKv6CgQCgp5ezsbAGBCgkxG5Ckvr4eCgsL2bmvr68eh0r+nzzlzClahUIBcrlc8PQdltVTe3v73zzlzO0EpVIJZWVlAqeqpaWlJ6aectfp18rKSmhoaBDq9D2CPrazs2Oeii/7mKY01SMNX+qWlZUV2NzcBBx1gF0E+/v7BPohNjZWjFNKJaZO+VO2BNne3obk5GRYX1/Xb2xsSC56b2BgQImGpRd6mJeXB1lZWay3iSMcaQxMKpVuHx0d6XASLXt6eq7iLllFL1fRO42Hh8eeEVBYNjQYSktLobm5Gdra2piH7e3tgIOXNT/2eTb2dndXVxckJSXByckJ0Nnd3R0QEHiM+BWGLFGpVGBhYQGRkZFnHR0dLFnEGYWL1mFtbQ3GxsaIT9uKioqvBI4UgEajgeXlZXB1dWW8klUt0djS0mJITEzU0UTCLaiJiIhQ0xmtGkhwJRDR7GpsbJRRcvAbyM/PBy8vL2a4pKSEVin/HN+/QdMa0y9BS98x5HsxMTHv+vv7X+N0EaWmpoKvry84OjpSQdPwvY27/DNFEBAQwAAp20QbhVyKBymFiB98y8jIuB8VFbVKSxvJd8a+vYOh6mUyGd/Z2Qmjo6OwtbXlhpwthYWFTe7t7TFKcAX/nIf4F8DA0tPTW3De/Yt8GMgaJSchIeE/9OjR+Pi4JDg42FgBPj4+A7gevru4uBj/LJydnRmPRP5NtP6xvLz8H+KSwCg5tEcwlE38VWkQgHBFDGVnZydlZmbK3Nzc+smoRCJh7wuVIs7NzX2IJfEFC5d1A2WPSoE2A/3vREdHv5+amgoPCQn5FBoa+oWooMzSu6blJsgPAQYACgtfMJolu7EAAAAASUVORK5CYII=", Bt.onload = () => {
+        Nt = !0
+    };
+    class Rt {
+        image = null;
+        ready = !1;
+        drawSize = 0;
+        previousMouseDown = !1;
+        #r = 20;
+        #i = 60;
+        #a = 100;
+        #s = 40;
+        #c = 2;
+        constructor(e) {
+            this.image = new Image, this.image.src = e, this.image.onload = () => {
+                this.ready = !0
+            }
+        }
+        update(e) {
+            e && !this.previousMouseDown && (this.drawSize += this.#r, this.drawSize = Math.min(Math.max(this.drawSize, this.#i), this.#a)), this.drawSize -= this.#c, this.drawSize = e ? Math.max(this.drawSize, this.#s) : Math.max(this.drawSize, 0), this.previousMouseDown = e
+        }
+        draw(e, t, n) {
+            const o = this.drawSize / 2,
+                r = t - o,
+                i = n - o;
+            e.drawImage(this.image, 0, 0, this.image.width, this.image.height, r, i, this.drawSize, this.drawSize)
+        }
+        destroy() {
+            this.image = null, this.ready = !1
+        }
+    }
+    const jt = new Rt("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAtCAYAAADV2ImkAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAArGSURBVHgBvVlbbFxHGZ451z273rXXsWt7k5RESpwoJqQpqdI2hTiNeQDaB0COoAIkHgolECQuEpc+eA0SD6ihBKrmIU+FloK3SJFIoWpDurmASy5qIbEJJaI0TryRb3vzXs5lZpg5O7N79vTs2gkVRxrP8dkzM9988/3/P/MfCN6HixACxwGA6fFxaXB2AGYTGRgfGCCJTIak6e/DY2N4jL4GISTgf7wguMPLBTk+rloj39srK+TDsqrvkSD4kARAlyTBGHsHYVKg1bsIo+sEgb+Zjnk69NpT6bGxMftOwd8uYDg6OiGte2Rdf2zLzq+rmv7VkAI7dRkAnSJVaJFpjxDWOsYUEqLFocVEAFRpMR0yYznOmepy/kfvHD14LZVKodsCsNoXk8mkZO38Yq/Wn0jquv5EhwpAWAHAoGBDtGgcsMTBuoABB0xvLFpMWioOAGValmkxbfRCaak0/pOPxa6tlvFVAR4dHZW3fOdX3zI07cmYBjujFGwHBRumdYiC1ChglQGGNcCssNEJqRXGsM0BM5ZLTq0ULQAKJpkplys/3jH78rEDBw6wObYFLq+AFY4mk9rWL/z0F7Gw/v3eEAytCQHQrQMQp6VTqxXGdkSpMS5Yd5mn9zpfAVYb/H+2GkxC7qrIsBMo6iMzxqa7doTzr50/fx7dMcMHJ6b6ezZseSluyHsYyC4OMMLlwICotAdVrmlXsCs6xi7NVBagJgvBNJMFY5rJokBZztGyWAUga5LL5euXR5769I550ILplgx//NAhffPw5891h+VdvQYAPXqNWQY6ptZYDQewyKShcj2L2r3nE2OyYc9lLiGhe9mdKOxD4Z4HNtrSr996K+2sGvBwMqk8+JkfHuky1E/2UgkIGXTREuXLz5aXgW3Sr0fHopa55xC1EgBWGCq7MJDu1u55oGertP7VS5dO4BUBM2/QP/Ltx2ORcJKB7WaAuV5jQgqcVTG4cGWilribgJ7/pdqjOpveNl4ZMR04UNklDW0v7V+vTKbT6SZpSH7A5d1f2xwNh5+Mc8NiEohyw3KXXeHG4mERegYVF/QVwbbCQbJVMbiBshWLcfvo4mNGdPUHc9tG72rLMIteZ7Pqkbih7OkJNQAzZusS4Iyy5YewMePV+EfxjggsQRMl9WADdWB0Rfete/iVdPo5HMjwd19ZGDQ09TGmU1Ei3BsIrfo1J4Bwh9A8OAgA7fEmjC3GuM7dYJgbc5TXRkj9SnnnQBPLdYZZcOjf/9jPug15O9Nt3OMNDG5cXgmIpfaChh6g0PM88PL2ARvtGLuI8mkTHh2VCHp4vXpKaLnOcGRoSA2p8kfrzt/HrOwDKwZYiVHiK8A3QcmjaTegcFfJXCbDoemhJ2ZnQUi0cwEz7fbu/+awpkjrhCGISCTACqtuB84Lxg/MvyLiR2EHwuUJ0AKHocJY52e/MSyau4BpDJc0Rd/nuivJEwA8EQy2AbaaXUugnnkteXy3CDgMeIgTF1LVe9kusQ44Hh+hgOXtutTQapMMQINdYWBwFYDagfdKRLDslYcqN4DLurYHgJRcB2xZGVmSpbvr4RQ2bxWF028FFraZAPG1IZ42TX1AT1AB3INwPJKifDA+NKQIwLAUpr9BuF4WeuKmKGbNem9lUN77dtolvucAtJ64N6TzQ0Gnc92oMUwNDkQ7DLp/hjExQxjQcdAgQfekRd3Kvb1nHNh8X6ulKI4xsQLocqlAIonO60voj0ABdStDCvLDrdqRoPehry17IefucyBVAqRGF2cPC6wl9rzkB+kH1I61Vs/aaZk9E3voZsPERTleI9WVxI3LGYIIKSB+pMEcuDjigIBBVvIK7TTvBS2eYX5D+NiYRzy28ScI3SyULPck4jKsrzUItsyr7EebnwzYy8g361ZAVgIV9E5QMHHDMmicThx+gLVtdCPqQHfxXYaL9i3HqZYnTX66tXkRcd0rj1aurRW4VvJo0jRp7CNEaoDxyQrDhBxryrYlTPMZhDFMPrJxIzaXly9XnVr+wEaN8xebsVgiQIINxg+ulYG289WINFICgjA3j0FLeSn35677hhymBlfIV65cwfN/+O3ZKiIFdkCs8KQHA25zHQWdv4MMDwYw6H/WBJo0ki0if8HGrojioNm5l58/t2bpPDUzUrO8kZER3KWp1Uoh/8syT3SwRlVcWxaHNJaLkGbWWmnar9GgwFI3cB9YttIlm+Oomn9VwnZlamobqTNM98L4JlxrLr155liRJzlYA3EcdyWCm0G3c2sk4N4vF+zVqwDryQq5iRaKIf/23w+jxWV7aGjUbeoCZsiHOqfR8tU3b5XzhefzVu1l0bDMDUB4EOxjO4jdoPv6JDyuU2zUKx6i2NgFNn5x+bhz5dy/jIc2WzRmNACzPijlCKugeuPsH58uWKSYt2tJDgG6ghryEKD9xuVn2c+0mCTyMGsKCXBm2biMsEIFZUrvTB2WOsLl7MmTdROqnzhSqQO4e3O36czM3MgvLjyTM2kmxuKN+azLvHObH2H8bo+A1qHXm2dzSLMEirx/NibLArE6v3DrmcKFU/+UF5FNM5z1Q2jTqfkTu3eTTNkG5uULU/qmnX1QD233bobYwFLAqYPwP36JEM/yuwHBA9bkXsCbrlriKaulbO6F2d8ffTrioOLc3EVreno6GHA6/ToY2nAawA6dZKcuToa37dpDZCUBAxgTGhQ+2vvMGwAcn8uyUEOvQqtsJZcoqwsMbMW+OvObZ7/s2FK+uICqqdSzTclBX+ZnHExNvY5PXPwTcYhBUG7+jDQwuJemj3oIbA0Ke4Ah3ABqc6AmB1oVYBH3ABYHW60xu1iqXpw7ffxLShXMgUKuPDgIbH/mJ9AzTUxMyJOTQFuQ342qNo4PfOrxsc7u+Ofco7/G8wbisKo0En1iww89Pgx5tO5Pahc8oPNUBjd/d2y8RJxc3FxTymbjJrWr96Re5RaAwRtvvESyloZVrOH8Py5Mgrs+sOBoka0OkKLu8nIGhbsTcd/yhlSnsfxMq0WnIYGsWZPBYoUUc/PzR/59/OhhyVYLSlguL9/qDwTbkmFxDQ8nlegg0DpoigCqSiR+z0ODXVvvPRSJRh+N8sRgmKda6+cv2JyBr8sDNyYh/G0pl31x8dyrP89nrmWIHSo5EakEbqyzJiZGcatPCG0Bs50cTQHILMlCd/whyTHCCFpGdNv9m2Lb7z8YNoz7dFUeMDzfOLzZSKZ1sVW0kPAMpFjJzr84/5dTz+HZ/8zZGFUcKJcH+8wKfZ0GiCRuh6ktYHGxFOzs7ICsKI5ekfOGBSxdMWXdArLat//RB8Nr+ncrhrFFUZS1sqr2Q0nqcAFjvEwwKdpm9W2rlL9YzeamF0+fmEQEm1CRLGsZmdFeuarkuqqJRAatBHbVgNlVYzsl9/ffUkpGRSPzuZDd2aE4FlEMIqsEO7Ij0f21ItOUgUwwYlxbQCUAOxg6qgYwItDBFWRLKrSUSJ+F52bsDRv2OsnkPnFWWPFaNWAPcjiaSknxk1kqgIyapXkZQ8UKMVSZFCzXiE2JSPQrA7AUh4QwBYojGMo2QpJlR0zgZBPAAXQrkEqNUkZv7wPj7QOu46ZeezwppdNAGhychYnECLw0O+0mO7oqkVq/ffTbCJKx4yjYNK/gRCLhWj5den8E//9fLKHI2Gd6Z4U+ce8BK+y39+n6L5YV4ArrvzyVAAAAAElFTkSuQmCC"),
+        Vt = new Rt("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADBSURBVHgBvdZdEcIwDAfwZAqQgAQs4AAHIAEHzAlSWgfMARZAQUjZ9rDbR5M22f+uzdaX30OvaREUIaIDlxuPVCMiRrAOIw+a5zngrsiYlwmWQWwwIVKHKZEyrBDRYZWIDDNCtjFjZBlzQsaEZCB/HLm+wTfnhqcT+OfawD75Jijy+IBvuv/M+3Qnv4QJyQst2Wf1LFli2e5ggYn7XQ2m7uAlWPGdpMGqb1kJZvZuaN2RDBakCIIi1Hf6y/DbaR6QP+1P5pe98AyNAAAAAElFTkSuQmCC");
+
+    function Gt(e, t, n, o, r, i) {
+        if (!Nt || !i || !Bt) return;
+        const a = Math.max(o, r);
+        if (function(e, t, n, o, r, i) {
+                [jt, Vt].forEach((a => {
+                    if (!a.ready || !i) return;
+                    const s = a === jt ? t : n;
+                    a.update(s);
+                    const c = e.x * o,
+                        d = e.y * r;
+                    a.draw(i, c, d)
+                }))
+            }(e, t, n, o, r, i), !Mt) {
+            const t = .5 * a;
+            i.drawImage(Bt, 0, 0, Bt.width, Bt.height, e.x * o, e.y * r, Bt.width * t, Bt.height * t)
+        }
+    }
+    const Ft = "Game tab in background";
+    let Ut = !0,
+        Kt = [],
+        zt = null,
+        Ht = document.createElement("canvas"),
+        qt = null,
+        Yt = null,
+        Wt = null,
+        $t = 0,
+        Jt = [],
+        Qt = [],
+        Zt = [],
+        Xt = [],
+        en = 24;
+    (C() || D() || Dt) && (en = 12), Ht.setAttribute("data-poki-no-playtest", "true"), Ht.addEventListener("webglcontextlost", (() => {
+        console.info("%cPOKI_PLAYTEST:%c streamCanvas context lost", "font-weight: bold", ""), Ht = document.createElement("canvas"), qt = null
+    }));
+    const tn = {
+        x: 0,
+        y: 0
+    };
+    let nn = !1,
+        on = !1,
+        rn = !1,
+        an = !1,
+        sn = "",
+        cn = 1,
+        dn = 1,
+        ln = -1,
+        un = -1;
+
+    function pn(e) {
+        if (null === zt || !Kt.length) return;
+        const t = Kt[0],
+            n = t.width / zt.width,
+            o = t.height / zt.height,
+            r = (e.clientX - zt.left) * n,
+            i = (e.clientY - zt.top) * o;
+        tn.x = Math.max(0, Math.min(r, t.width)), tn.y = Math.max(0, Math.min(i, t.height))
+    }
+    const mn = e => {
+            Kt.length && Ht && pn(e)
+        },
+        fn = e => {
+            Kt.length && Ht && (0 === e.button ? (nn = !0, on = !1) : 2 === e.button ? (rn = !0, an = !1) : 1 === e.button && (nn = !0, on = !1, rn = !0, an = !1), pn(e))
+        },
+        gn = e => {
+            0 === e.button ? on = !0 : 2 === e.button ? an = !0 : 1 === e.button && (on = !0, an = !0)
+        };
+
+    function hn() {
+        const e = sn;
+        e && Ht && qt && (qt.fillStyle = "rgba(255, 255, 255, 0.5)", qt.fillRect(0, 0, Ht.width, Ht.height), qt.font = "48px Arial", qt.fillStyle = "#009cff", qt.textAlign = "center", qt.fillText(e, Ht.width / 2, Ht.height / 2))
+    }
+
+    function yn(e) {
+        if (!Ht || !Kt.length) return;
+        const t = Kt[0],
+            n = t.width,
+            o = t.height;
+        if (n === ln && o === un && !e) return;
+        ln = n, un = o, zt = t.getBoundingClientRect();
+        let {
+            width: r,
+            height: i
+        } = zt;
+        0 !== r && 0 !== i || (r = n, i = o);
+        const a = C() || D(),
+            s = Dt ? 1024 : a ? 640 : 1280,
+            c = Math.min(s / r, s / i, 1);
+        r = Math.round(r * c), i = Math.round(i * c), cn = r / n, dn = i / o;
+        e || Ht.width !== r || Ht.height !== i ? (Ht.width = r, Ht.height = i, console.info(`%cPOKI_PLAYTEST:%c capturing at ${r}x${i} (${n}x${o})`, "font-weight: bold", "")) : console.info(`%cPOKI_PLAYTEST:%c resize but video unchanged ${r}x${i} (${n}x${o})`, "font-weight: bold", "")
+    }
+
+    function wn(e) {
+        let t = null;
+        for (let n = 0; n < e.length; n++)
+            if (!document.body.contains(e[n])) {
+                if (e[n].pokiHtmlDummyCanvas) continue;
+                if (t || (t = document.getElementsByTagName("flt-glass-pane")), t) {
+                    let o = !1;
+                    for (let r = 0; r < t.length; r++) t[r].shadowRoot?.contains(e[n]) && (o = !0);
+                    if (o) continue
+                }
+                return !1
+            } return !0
+    }
+    async function vn(e) {
+        if (Ht && (Yt || (Yt = document.createElement("canvas"), 0 === Kt.length ? (Yt.width = Ht.width, Yt.height = Ht.height) : (Yt.width = Kt[0].width, Yt.height = Kt[0].height), Yt.addEventListener("contextlost", (() => {
+                Yt = null, Wt = null
+            }))), Wt || (Wt = Yt.getContext("2d"), Wt))) try {
+            performance.now();
+            const t = await (async e => {
+                const t = ["VIDEO", "TEXTAREA", "SCRIPT", "NOSCRIPT", "INPUT", "IFRAME"];
+                e || t.push("CANVAS");
+                const n = e => !(t.includes(e.nodeName) || "IMG" === e.nodeName && !e.getAttribute("src") || e.classList?.contains(ht) || "true" === e.getAttribute?.("data-poki-playtest-skip")),
+                    o = document.body.style.minWidth,
+                    r = document.body.style.minHeight,
+                    i = document.body.style.backgroundColor;
+                let a;
+                document.body.style.minWidth = "100%", document.body.style.minHeight = "100%", e || (document.body.style.backgroundColor = "transparent");
+                try {
+                    a = await mt(document.body, {
+                        filter: n,
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                    })
+                } catch (e) {
+                    console.warn("%cPOKI:%c failed to generate svg", "font-weight: bold", "", e)
+                }
+                return document.body.style.minWidth = o, document.body.style.minHeight = r, document.body.style.backgroundColor = i, a
+            })(e);
+            if (t && t.length > 10) {
+                const e = await new Promise(((e, n) => {
+                    const o = new Image;
+                    o.decode = () => e(o), o.onload = () => e(o), o.onerror = n, o.crossOrigin = "anonymous", o.decoding = "async", o.src = t
+                }));
+                requestAnimationFrame((() => {
+                    Yt && Wt && (Wt.clearRect(0, 0, Yt.width, Yt.height), Wt.drawImage(e, 0, 0, e.width, e.height, 0, 0, Yt.width, Yt.height), $t = 0)
+                }))
+            }
+        } catch (e) {
+            console.warn("%cPOKI_PLAYTEST:%c ui canvas error", "font-weight: bold", "", e.name, e.message, e.stack), $t++;
+            const t = Ot();
+            (t === Et || t === St) && $t > 10 && (Ut = !0)
+        }
+    }
+
+    function bn(e) {
+        sn = e
+    }
+    async function kn(e) {
+        if (!Ut) {
+            Kt = e;
+            for (let e = 0; e < Jt.length; e++) Jt[e].stop();
+            for (let e = 0; e < Qt.length; e++) Qt[e].readable.cancel();
+            for (let e = 0; e < Zt.length; e++) Zt[e].cancel();
+            for (let e = 0; e < Xt.length; e++) Xt[e].close();
+            Jt = [], Qt = [], Zt = [], Xt = [];
+            try {
+                if (Lt)
+                    for (let e = 0; e < Kt.length; e++) {
+                        if (Kt[e].pokiHtmlDummyCanvas) continue;
+                        const t = Kt[e].captureStream(en).getVideoTracks()[0];
+                        Jt.push(t), Xt.push(null);
+                        const n = new Blob(["self.onmessage=(async({data:{track:e}})=>{if(!e)return;const a=new MediaStreamTrackProcessor({track:e}).readable.getReader(),s=()=>{a.read().then(({done:e,value:a})=>{e?a.close():(postMessage(a),a.close(),s())})};s()});"], {
+                                type: "application/javascript"
+                            }),
+                            o = new Worker(URL.createObjectURL(n));
+                        o.onmessage = ({
+                            data: t
+                        }) => {
+                            Xt.length <= e || (null !== Xt[e] && Xt[e].close(), Xt[e] = t)
+                        };
+                        try {
+                            o.postMessage({
+                                track: t
+                            })
+                        } catch (e) {
+                            console.warn("%cPOKI_PLAYTEST:%c worker error", "font-weight: bold", "", e), Ut = !0
+                        }
+                    } else
+                        for (let e = 0; e < Kt.length; e++) {
+                            if (Kt[e].pokiHtmlDummyCanvas) continue;
+                            const t = Kt[e].captureStream(en).getVideoTracks()[0],
+                                n = new window.MediaStreamTrackProcessor(t),
+                                o = n.readable.getReader();
+                            Jt.push(t), Qt.push(n), Zt.push(o), Xt.push(null);
+                            const r = () => {
+                                o.read().then((({
+                                    done: t,
+                                    value: n
+                                }) => {
+                                    t ? Ut = !0 : Xt.length <= e ? n.close() : (null !== Xt[e] && Xt[e].close(), Xt[e] = n, r())
+                                }))
+                            };
+                            r()
+                        }
+                yn(!0)
+            } catch (e) {
+                console.warn("%cPOKI_PLAYTEST:%c setPlaytestSoureCanvasses error", "font-weight: bold", "", e), Ut = !0
+            }
+        }
+    }
+
+    function An() {
+        const e = Tt();
+        if (e?.length && wn(e)) return e;
+        const t = Ot();
+        if (t === St) {
+            const e = document.createElement("canvas");
+            return e.width = window.innerWidth, e.height = window.innerHeight, e.setAttribute("data-poki-html-canvas", "true"), e.pokiHtmlDummyCanvas = !0, [e]
+        }
+        let n = 0,
+            o = Array.from(document.getElementsByTagName("canvas"));
+        if (0 === o.length) {
+            const e = document.getElementsByTagName("flt-glass-pane");
+            for (let t = 0; t < e.length; t++) {
+                const {
+                    shadowRoot: n
+                } = e[t];
+                n && (o = o.concat(Array.from(n.querySelectorAll("canvas"))))
+            }
+        }
+        let r = [];
+        if (o.forEach((e => {
+                if ("true" === e.getAttribute("data-poki-no-playtest")) return;
+                const t = getComputedStyle(e),
+                    {
+                        width: o,
+                        height: i
+                    } = t,
+                    a = parseInt(o, 10) * parseInt(i, 10);
+                a >= n && function(e) {
+                    if (!e) return !1;
+                    let t = e,
+                        n = !0;
+                    for (; t && t !== document.body;) {
+                        const e = window.getComputedStyle(t);
+                        if ("none" === e.display) return !1;
+                        if ("hidden" === e.visibility) return !1;
+                        if (n && (0 === t.offsetWidth || 0 === t.offsetHeight)) return !1;
+                        "absolute" === e.position && (n = !1), t = t.parentElement
+                    }
+                    const o = e.getBoundingClientRect(),
+                        r = window.innerHeight || document.documentElement.clientHeight,
+                        i = window.innerWidth || document.documentElement.clientWidth;
+                    return !(o.right < 0 || o.bottom < 0 || o.left > i || o.top > r)
+                }(e) && (a > n && (r = []), r.push({
+                    canvas: e,
+                    style: t,
+                    index: r.length
+                }), n = a)
+            })), 0 === r.length) {
+            if (t === Et) {
+                const e = document.createElement("canvas");
+                return e.width = window.innerWidth, e.height = window.innerHeight, e.setAttribute("data-poki-html-canvas", "true"), e.pokiHtmlDummyCanvas = !0, [e]
+            }
+            return []
+        }
+        return r.sort(((e, t) => {
+            const n = parseInt(e.style.zIndex, 10) || 0,
+                o = parseInt(t.style.zIndex, 10) || 0;
+            return n < o ? -1 : n > o ? 1 : e.index - t.index
+        })), r.map((e => e.canvas))
+    }
+
+    function Sn(e, t) {
+        if (!Ht) return null;
+        Ut = !1, kn(e), yn(!0);
+        const n = Ht.captureStream(en);
+        let o;
+        window.addEventListener("pointermove", mn, {
+            capture: !0,
+            passive: !0
+        }), window.addEventListener("pointerdown", fn, {
+            capture: !0,
+            passive: !0
+        }), window.addEventListener("pointerup", gn, {
+            capture: !0,
+            passive: !0
+        }), window.addEventListener("contextmenu", gn, {
+            capture: !0,
+            passive: !0
+        });
+        let r, i = 0,
+            a = null;
+        const s = Ot();
+        if (s === Et || s === St) {
+            let e = 0;
+            o = setInterval((() => {
+                if (!Ht) return;
+                const t = !!Kt[0].pokiHtmlDummyCanvas;
+                !t || Kt[0].width === window.innerWidth && Kt[0].height === window.innerHeight || (Kt[0].width = window.innerWidth, Kt[0].height = window.innerHeight);
+                let n = !1;
+                if (t && document.getElementsByTagName("canvas").length > 0 && (n = !0), !n) {
+                    const t = function(e) {
+                        const t = 3 & e.length,
+                            n = e.length - t,
+                            o = 3432918353,
+                            r = 461845907;
+                        let i = 0,
+                            a = 0,
+                            s = 0;
+                        for (; s < n;) a = 255 & e.charCodeAt(s) | (255 & e.charCodeAt(++s)) << 8 | (255 & e.charCodeAt(++s)) << 16 | (255 & e.charCodeAt(++s)) << 24, ++s, a = (65535 & a) * o + (((a >>> 16) * o & 65535) << 16) & 4294967295, a = a << 15 | a >>> 17, a = (65535 & a) * r + (((a >>> 16) * r & 65535) << 16) & 4294967295, i ^= a, i = i << 13 | i >>> 19, i = 5 * i + 3864292196 & 4294967295;
+                        switch (a = 0, t) {
+                            case 3:
+                                a ^= (255 & e.charCodeAt(s + 2)) << 16;
+                            case 2:
+                                a ^= (255 & e.charCodeAt(s + 1)) << 8;
+                            case 1:
+                                a ^= 255 & e.charCodeAt(s), a = (65535 & a) * o + (((a >>> 16) * o & 65535) << 16) & 4294967295, a = a << 15 | a >>> 17, a = (65535 & a) * r + (((a >>> 16) * r & 65535) << 16) & 4294967295, i ^= a
+                        }
+                        return i ^= e.length, i ^= i >>> 16, i = 2246822507 * (65535 & i) + ((2246822507 * (i >>> 16) & 65535) << 16) & 4294967295, i ^= i >>> 13, i = 3266489909 * (65535 & i) + ((3266489909 * (i >>> 16) & 65535) << 16) & 4294967295, i ^= i >>> 16, i >>> 0
+                    }(document.body.innerHTML);
+                    e !== t && (e = t, n = !0)
+                }
+                n && vn(t)
+            }), 1e3)
+        }
+        return r = setInterval((() => {
+            if (Ut || !Ht || !Kt.length || i > 10) return console.info("%cPOKI_PLAYTEST:%c", "font-weight: bold", "", Ut ? "stopped" : "crashed", Ut, !Ht, !Kt.length, i), window.removeEventListener("pointermove", mn), window.removeEventListener("pointerdown", fn), window.removeEventListener("pointerup", gn), window.removeEventListener("contextmenu", gn), clearInterval(o), Ct(""), Ht = null, qt = null, Yt = null, Wt = null, kn([]), jt.destroy(), Vt.destroy(), clearInterval(r), a && clearTimeout(a), void t();
+            if (!wn(Kt)) {
+                console.info("%cPOKI_PLAYTEST:%c source canvasses not in DOM", "font-weight: bold", "");
+                const e = An();
+                return void(e.length ? kn(e) : (console.info("%cPOKI_PLAYTEST:%c no source canvasses found", "font-weight: bold", ""), i++))
+            }
+            if (!qt && (qt = Ht.getContext("2d"), !qt)) return console.info("%cPOKI_PLAYTEST:%c streamCanvas context creation failed", "font-weight: bold", ""), void i++;
+            i = 0, yn(!1);
+            const e = Ot();
+            e === At ? (Ct(""), vn(!1)) : e === It && (Ct(""), Yt = null, Wt = null), qt.clearRect(0, 0, Ht.width, Ht.height);
+            for (let e = 0; e < Xt.length; e++) {
+                const t = Xt[e];
+                null !== t && qt.drawImage(t, 0, 0, t.displayWidth, t.displayHeight, 0, 0, Ht.width, Ht.height)
+            }
+            Yt && qt.drawImage(Yt, 0, 0, Yt.width, Yt.height, 0, 0, Ht.width, Ht.height), Gt(tn, nn, rn, cn, dn, qt), nn && on && (nn = !1, on = !1), rn && an && (rn = !1, an = !1), hn()
+        }), 1e3 / en), window.addEventListener("visibilitychange", (() => {
+            console.info("%cPOKI_PLAYTEST:%c visibility change", "font-weight: bold", "", document.visibilityState), a && clearTimeout(a), "visible" === document.visibilityState ? sn === Ft && (sn = "") : (sn = Ft, hn(), a = setTimeout((() => {
+                Ut = !0
+            }), 6e4))
+        })), window.addEventListener("resize", (() => {
+            console.info("%cPOKI_PLAYTEST:%c resize", "font-weight: bold", "", window.innerWidth, window.innerHeight)
+        })), window.addEventListener("orientationchange", (e => {
+            console.info("%cPOKI_PLAYTEST:%c orientationchange", "font-weight: bold", "", e?.target?.screen?.orientation?.type)
+        })), window.screen.orientation.addEventListener("change", (e => {
+            console.info("%cPOKI_PLAYTEST:%c orientation change", "font-weight: bold", "", e.target?.type)
+        })), n
+    }
+    const En = new RegExp(`(${["WebView","(iPhone|iPod|iPad)(?!.*Safari)","Android.*(;\\s+wv|Version/\\d.\\d\\s+Chrome/\\d+(\\.0){3})","Linux; U; Android"].join("|")})`, "ig");
+
+    function In() {
+        window.navigator.userAgent.match(En) && !V.isPlayground && document.addEventListener("touchmove", (e => (e.preventDefault(), e.returnValue = !1, !1)), {
+            passive: !1
+        })
+    }
+
+    function _n() {
+        return `User_${Math.floor(9e8*Math.random())+1e8}`
+    }
+    class Pn {
+        #d = null;
+        #l() {
+            if (!V.isPokiIframe) throw new Error("User accounts is not available")
+        }
+        getUser = async () => F.debug ? {
+            username: "TestUser",
+            avatarUrl: "https://a.poki-cdn.com/img/placeholder_gradient.png"
+        } : (this.#l(), this.#d || (this.#d = await this.#u()), this.#d);
+        getToken = async () => F.debug ? "dummy.jwt.token" : (this.#l(), this.#p());
+        login = async () => {
+            if (F.debug) return;
+            this.#l();
+            return await this.getUser() ? void 0 : new Promise(((t, n) => {
+                function o(t) {
+                    t.data.type === e.accounts.authPanelClosed && (window.removeEventListener("message", o), n(new Error("User closed the auth panel without signing in.")))
+                }
+                window?.top?.postMessage({
+                    type: e.accounts.openAuthPanel
+                }, "*"), window.addEventListener("message", o), setTimeout((() => {
+                    window.removeEventListener("message", o), n(new Error("Login timeout. User took too long to complete the action."))
+                }), 45e3)
+            }))
+        };
+        #u = async () => {
+            try {
+                return new Promise((t => {
+                    window?.top?.postMessage({
+                        type: e.accounts.getUserInfo
+                    }, "*");
+                    const n = o => {
+                        if (o.data.type === e.accounts.userInfo) {
+                            window.removeEventListener("message", n);
+                            const {
+                                enabled: e,
+                                session: r
+                            } = o.data;
+                            if (!e || !r?.id) return void t(null);
+                            this.#d = {
+                                username: _n(),
+                                avatarUrl: "https://a.poki-cdn.com/img/placeholder_gradient.png"
+                            }, t(this.#d)
+                        }
+                    };
+                    window.addEventListener("message", n), setTimeout((() => {
+                        window.removeEventListener("message", n), t(null)
+                    }), 8e3)
+                }))
+            } catch (e) {
+                q("failed to fetch user info:", e)
+            }
+            return null
+        };
+        #p = async () => {
+            try {
+                return new Promise((t => {
+                    window?.top?.postMessage({
+                        type: e.accounts.getUserToken
+                    }, "*");
+                    const n = o => {
+                        if (o.data.type === e.accounts.userToken) {
+                            window.removeEventListener("message", n);
+                            const {
+                                token: e,
+                                error: r
+                            } = o.data;
+                            if (r) return q("failed to fetch user token:", r), void t(null);
+                            if (!e) return void t(null);
+                            t(e)
+                        }
+                    };
+                    window.addEventListener("message", n), setTimeout((() => {
+                        window.removeEventListener("message", n), t(null)
+                    }), 8e3)
+                }))
+            } catch (e) {
+                q("failed to fetch user token:", e)
+            }
+            return null
+        }
+    }
+    let Tn;
+    const xn = atob("bGVhZGVyYm9hcmQ=");
+
+    function On(e, t) {
+        const n = performance.now();
+        if (!Number.isInteger(t)) return;
+        if (!Tn) try {
+            Tn = localStorage.getItem(`poki_${xn}_user_id`) || void 0, Tn || (Tn = crypto.randomUUID(), localStorage.setItem(`poki_${xn}_user_id`, Tn))
+        } catch {
+            return
+        }
+        const o = {
+                time_on_page: Math.floor(n),
+                p4d_game_id: V.gameID,
+                [xn]: e,
+                user_id: Tn,
+                score: t
+            },
+            r = Object.keys(o),
+            i = function(e, t) {
+                const n = Array.from({
+                        length: e
+                    }, ((e, t) => t)),
+                    o = [],
+                    r = function(e) {
+                        let t = 1;
+                        for (; e--;) t *= e + 1;
+                        return t
+                    }(e);
+                let i = (t % r + r) % r,
+                    a = e,
+                    s = 0;
+                for (;;) switch (s) {
+                    case 0:
+                        if (a <= 0) {
+                            s = 3;
+                            break
+                        }
+                        s = 1;
+                        break;
+                    case 1: {
+                        let e = 1,
+                            t = a - 1;
+                        for (; t;) e *= t, t--;
+                        const r = i / e | 0;
+                        o[o.length] = n.splice(r, 1)[0], i %= e, a--, s = 0;
+                        break
+                    }
+                    case 3:
+                        return o
+                }
+            }(r.length, t),
+            a = {};
+        for (let e = 0; e < i.length; e++) {
+            const t = r[i[e]];
+            a[t] = o[t]
+        }
+        let s = JSON.stringify(a);
+        s += " ".repeat(Math.abs((t + (performance.now() - n > 100 ? 1 : 0)) % 7)), fetch(`https://${xn}.poki.com/v0/${xn}s/submit`, {
+            method: "POST",
+            body: s
+        }).catch((() => {}))
+    }
+    let Cn = 0;
+
+    function Dn() {
+        return Cn
+    }
+    const Ln = atob("c3VibWl0U2NvcmU=");
+    const Mn = class {
+            __monetization;
+            __gameStarted = !1;
+            #m = !1;
+            #f;
+            #g = new be(.01);
+            #h;
+            #y = 0;
+            #w = 0;
+            #v = 0;
+            #b = 0;
+            #k = new Pn;
+            #A = !1;
+            #S = null;
+            constructor(e, t = !1) {
+                this.__monetization = e, this.#A = t, In(), setInterval((() => {
+                    this.#w = Math.max(this.#w - 1, 0)
+                }), 1e3)
+            }
+            init = (t = {}) => {
+                if (this.__logCall("init", t), this.#S) return Y("PokiSDK.init() called more than once"), this.#S;
+                t[Ln] && t[Ln](((e, t) => {
+                    On(e, t)
+                })), window.addEventListener("pointerdown", this.#E), document.addEventListener("keydown", this.#E);
+                const n = window;
+                if (n.engine?.config?.onPrint) {
+                    const e = n.engine.config.onPrint;
+                    n.engine.config.onPrint = (...t) => {
+                        e(...t);
+                        const o = t[0]?.match(/Godot Engine (.+)/);
+                        o && o[1] && (! function(e) {
+                            ne = e
+                        }(o[1]), n.engine.config.onPrint = e)
+                    }
+                }
+                return this.#S = new Promise((n => {
+                    this.__monetization.init({
+                        onReady: () => {
+                            O("preroll") && this.__monetization.forcePreroll(), n()
+                        },
+                        ...t
+                    }), this.#I(), V.isInspector && this.#_(), document.location.search.length <= 1 && G.sendMessage(e.message.sendInspectorEvent, {
+                        event: "bad-behavior",
+                        data: {
+                            behavior: "rewrite_query_params"
+                        }
+                    }), G.sendMessage(e.message.sdkDetails, {
+                        version: "f28c2657cb1b4394dc39366cb5c5f54ab14f1002"
+                    })
+                })), this.#S
+            };
+            #I = () => {
+                window.addEventListener("message", (async t => {
+                    if ("pokiGenerateScreenshot" === t.data.type)(async t => {
+                        const {
+                            hasFrame: n
+                        } = t;
+                        let o = null;
+                        if (n) {
+                            const {
+                                title: e,
+                                thumbnail: n
+                            } = t;
+                            o = await bt({
+                                title: e,
+                                thumbnail: n
+                            })
+                        } else o = await bt();
+                        const r = {
+                            screenshot: o,
+                            errors: re
+                        };
+                        t.callback && (r.callback = t.callback), G.sendMessage(e.message.sendGameScreenshot, {
+                            data: r
+                        })
+                    })(t.data);
+                    else if ("pokiGenerateRawScreenshot" === t.data.type)(async () => {
+                        const t = await vt();
+                        G.sendMessage(e.message.sendGameRawScreenshot, {
+                            data: {
+                                screenshot: t
+                            }
+                        })
+                    })();
+                    else if ("pokiUploadScreenshot" === t.data.type) {
+                        const n = await wt(t.data);
+                        G.sendMessage(e.message.sendUploadScreenshot, {
+                            data: {
+                                screenshot: n
+                            }
+                        })
+                    }
+                }), !1)
+            };
+            #_ = () => {
+                if (window.addEventListener("message", (async t => {
+                        if ("pokiInspectorAllowCommercialBreak" === t.data.type && (j("adOverrideMode", !0), j("houseAdsOnly", !0)), "pokiInspectorDisallowCommercialBreak" === t.data.type && (j("adOverrideMode", !1), j("houseAdsOnly", !1)), "pokiInspectorRequestCookies" === t.data.type && Ae().then((t => {
+                                G.sendMessage(e.message.sendInspectorCookies, {
+                                    data: {
+                                        cookies: t
+                                    }
+                                }), G.sendMessage(e.message.sendInspectorEvent, {
+                                    event: "cookies",
+                                    data: {
+                                        cookies: t
+                                    }
+                                })
+                            })), "pokiInspectorClearLocalStorage" === t.data.type) try {
+                            if (localStorage.clear(), indexedDB.databases) {
+                                const e = await indexedDB.databases(),
+                                    t = (await Promise.allSettled(e.filter((e => "string" == typeof e.name)).map((e => indexedDB.deleteDatabase(e.name))))).filter((e => "rejected" === e.status));
+                                t.length > 0 && q("PokiSDK: Some IndexedDB databases failed to delete", t)
+                            }
+                            document.cookie.split(";").forEach((e => {
+                                const t = e.split("=")[0].trim();
+                                document.cookie = `${t}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+                            })), G.sendMessage(e.message.sendInspectorEvent, {
+                                event: "localStorageCleared"
+                            })
+                        } catch (t) {
+                            q("PokiSDK: Error clearing localStorage", t), G.sendMessage(e.message.sendInspectorEvent, {
+                                event: "localStorageClearError",
+                                data: {
+                                    error: String(t)
+                                }
+                            })
+                        }
+                    }), !1), "desktop" !== V.device) try {
+                    const t = t => {
+                        const n = console[t];
+                        console[t] = (...o) => {
+                            G.sendMessage(e.message.sendInspectorConsole, {
+                                data: {
+                                    level: t,
+                                    args: te(o)
+                                }
+                            }), G.sendMessage(e.message.sendInspectorEvent, {
+                                event: "console",
+                                data: {
+                                    level: t,
+                                    args: te(o)
+                                }
+                            }), n.apply(console, o)
+                        }
+                    };
+                    t("log"), t("warn"), t("error")
+                } catch {}
+            };
+            initWithVideoHB = () => this.init();
+            setDebug = (t = !0) => {
+                this.__logCall("setDebug", t);
+                const {
+                    hostname: n
+                } = window.location;
+                n.endsWith("poki-gdn.com") ? t && Z.track(e.tracking.debugTrueInProduction) : (F.debug = t, F.log = t ?? F.log, t ? function() {
+                    if (ce) {
+                        ce = !1, window.removeEventListener("unhandledrejection", me), window.removeEventListener("error", fe);
+                        try {
+                            console.error = ae
+                        } catch {}
+                    }
+                }() : ge())
+            };
+            setLogging = e => {
+                this.__logCall("setLogging", e), F.log = e
+            };
+            #P = () => this.#w >= 10;
+            gameLoadingFinished = () => {
+                this.__logCall("gameLoadingFinished"), clearInterval(window.pokiCancelProgressInterval), Z.track(e.tracking.screen.gameLoadingFinished, {
+                    transferSize: kt(),
+                    trackers: X().join(","),
+                    error_session_id: de,
+                    now: Math.round(window.performance?.now?.()) || void 0
+                });
+                const t = window.pokiMeasureBuildin;
+                window.PokiSDK.measure("game", "loading", "complete"), window.pokiMeasureBuildin = t
+            };
+            gameplayStart = t => {
+                if (this.__logCall("gameplayStart", t), this.#P()) return void q("PokiSDK.gameplayStart() ignored because of too many events");
+                this.#m = !0, this.__gameStarted || (this.__gameStarted = !0, Z.track(e.tracking.screen.firstRound), this.__monetization.startStartAdsAfterTimer());
+                const n = this.#w;
+                setTimeout((() => {
+                    let o;
+                    performance.now() - Dn() < 5e3 && (o = this.#h), Z.track(e.tracking.screen.gameplayStart, {
+                        ...t,
+                        fps: this.#g.stats(),
+                        badEvents: n,
+                        interaction: o
+                    })
+                }), 0), clearTimeout(this.#f), this.#f = setTimeout((() => {
+                    window.addEventListener("pointermove", this.#T), document.addEventListener("keydown", this.#T)
+                }), 6e5), this.#y && (this.#y > performance.now() - 50 && this.#w++, this.#y = 0)
+            };
+            gameplayStop = t => {
+                this.__logCall("gameplayStop", t), this.#P() ? q("PokiSDK.gameplayStart() ignored because of too many events") : (this.#m = !1, Z.track(e.tracking.screen.gameplayStop, {
+                    ...t,
+                    fps: this.#g.stats()
+                }), clearTimeout(this.#f), window.removeEventListener("pointermove", this.#T), document.removeEventListener("keydown", this.#T), this.#y = performance.now())
+            };
+            customEvent = (t, n, o = {}) => {
+                this.__logCall("customEvent", t, n, o), t && n ? (t = String(t), n = String(n), o = {
+                    ...o
+                }, "game" === t && "segment" === n && o.segment || Z.track(e.tracking.custom, {
+                    eventNoun: t,
+                    eventVerb: n,
+                    eventData: o
+                })) : console.error("%cPOKI:%c PokiSDK.customEvent() needs at least a noun and a verb", "font-weight: bold", "")
+            };
+            commercialBreak = t => new Promise((n => {
+                if (this.__logCall("commercialBreak", t), "977b60eb-ff81-4c3a-895b-b585410d6c0d" === V.gameID) return void n();
+                if (this.#P()) return q("PokiSDK.commercialBreak() ignored because of too many calls"), void n();
+                const o = this.__gameStarted ? e.ads.position.midroll : e.ads.position.preroll;
+                let r = !1;
+                this.__runVideoAd({
+                    amount: 1,
+                    position: o,
+                    onStart: () => {
+                        if (this.#v++, r = !0, window.pokiMeasureBuildin && window.PokiSDK.measure("midroll", this.#v, "start"), "function" == typeof t) try {
+                            t()
+                        } catch (e) {
+                            q("error in onStart callback of PokiSDK.commercialBreak()", e)
+                        }
+                    }
+                }).then((() => {
+                    r && window.pokiMeasureBuildin && window.PokiSDK.measure("midroll", this.#v, "complete"), n()
+                }))
+            }));
+            rewardedBreak = t => new Promise((n => {
+                if (this.__logCall("rewardedBreak", t), "977b60eb-ff81-4c3a-895b-b585410d6c0d" === V.gameID) return void n(!1);
+                let o, r = 1;
+                if ("function" == typeof t) o = t;
+                else if ("object" == typeof t) {
+                    t.onStart && (o = t.onStart);
+                    const e = t?.size || ye.SMALL;
+                    e === ye.SMALL ? r = 1 : e === ye.MEDIUM ? r = 2 : e === ye.LARGE && (r = 3)
+                }
+                let i = !1;
+                setTimeout((() => {
+                    this.__runVideoAd({
+                        position: e.ads.position.rewarded,
+                        amount: r,
+                        onStart: () => {
+                            if (this.#b++, i = !0, window.pokiMeasureBuildin && window.PokiSDK.measure("rewarded", this.#b, "start"), "function" == typeof o) try {
+                                o()
+                            } catch (e) {
+                                q("error in onStart callback of PokiSDK.rewardedBreak()", e)
+                            }
+                        }
+                    }).then((e => {
+                        i && window.pokiMeasureBuildin && window.PokiSDK.measure("rewarded", this.#b, "complete"), n(e)
+                    }))
+                }), 0)
+            }));
+            displayAd = (t, n, o, r) => {
+                if (this.__logCall("displayAd", t, n, o, r), "977b60eb-ff81-4c3a-895b-b585410d6c0d" === V.gameID) return void(o && o());
+                const i = he();
+                Z.track(e.tracking.screen.displayAd, {
+                    size: n,
+                    opportunityId: i,
+                    duringGameplay: this.#m
+                });
+                const a = {
+                    container: t,
+                    opportunityId: i,
+                    size: n,
+                    duringGameplay: this.#m,
+                    onCanDestroy: o,
+                    onDisplayRendered: r,
+                    headerBiddingAllowed: !0
+                };
+                this.__monetization.displayAd(a)
+            };
+            destroyAd = e => {
+                this.__logCall("destroyAd", e), this.__monetization.destroyAd(e)
+            };
+            isAdBlocked = () => !1;
+            muteAd = () => {
+                this.__logCall("muteAd"), this.__monetization.muteAd()
+            };
+            setVolume = e => {
+                this.__logCall("setVolume", e), this.__monetization.setVolume(e)
+            };
+            logError = e => {
+                this.captureError(e)
+            };
+            setPlaytestCanvas = e => {
+                this.__logCall("setPlaytestCanvas", e), this.playtestSetCanvas(e)
+            };
+            playtestSetCanvas = e => {
+                if (this.__logCall("playtestSetCanvas", e), !e) return void xt([]);
+                const t = [].concat(e);
+                xt(t), kn(t)
+            };
+            playtestCaptureHtmlOnce = () => {
+                this.__logCall("playtestCaptureHtmlOnce"), Ct(At)
+            };
+            playtestCaptureHtmlForce = () => {
+                this.__logCall("playtestCaptureHtmlForce"), Ct(St)
+            };
+            playtestCaptureHtmlOn = () => {
+                this.__logCall("playtestCaptureHtmlOn"), Ct(Et)
+            };
+            playtestCaptureHtmlOff = () => {
+                this.__logCall("playtestCaptureHtmlOff"), Ct(It)
+            };
+            getIsoLanguage = () => O("iso_lang");
+            shareableURL = (t = {}) => new Promise(((n, o) => {
+                this.__logCall("shareableURL", t);
+                const r = new URLSearchParams,
+                    i = Object.keys(t);
+                if (V.isPokiIframe || V.isInspector) {
+                    const o = O("poki_url");
+                    i.forEach((e => {
+                        void 0 !== t[e] && null !== t[e] && r.set(`gd${e}`, t[e])
+                    })), n(`${o}?${r.toString()}`), G.sendMessage(e.message.setPokiURLParams, {
+                        params: t
+                    })
+                } else window.self === window.top ? (i.forEach((e => {
+                    void 0 !== t[e] && null !== t[e] && r.set(`${e}`, t[e])
+                })), n(`${window.location.origin}${window.location.pathname}?${r.toString()}`)) : o(new Error("shareableURL only works on Poki or a top level frame"))
+            }));
+            getURLParam = e => O(`gd${e}`) || O(e);
+            captureError = e => {
+                this.__logCall("captureError", e), pe(e)
+            };
+            getLanguage = () => navigator.language.toLowerCase().split("-")[0];
+            generateScreenshot = async () => (this.__logCall("generateScreenshot"), bt());
+            enableEventTracking = e => {
+                this.__logCall("enableEventTracking", e), V.isPlayground || V.isPokiIframe || V.isInspector || document?.referrer?.includes("games.poki.com") || Z.setupObserverWithCMP(e || 0)
+            };
+            __runVideoAd = ({
+                position: t,
+                amount: n,
+                onStart: o,
+                timeBetweenAds: r
+            }) => new Promise((i => {
+                let a = 1;
+                this.__monetization.setNrAds(a, n);
+                const s = he(),
+                    c = o => {
+                        setTimeout((() => {
+                            if (o?.type === e.ads.limit || o?.type === e.ads.busy) return void i(!1);
+                            if (a === n || this.#A) return z.dispatchEvent(e.ads.startTimer, {
+                                overwriteTimeBetweenAds: r
+                            }), void i(!!o?.rewardAllowed);
+                            const d = z.getVideoDataAnnotations();
+                            if ("poki" === d?.bidder) return z.dispatchEvent(e.ads.startTimer, {
+                                overwriteTimeBetweenAds: r
+                            }), void i(!0);
+                            a++, z.clearVideoDataAnnotations(), z.addVideoDataAnnotations({
+                                adBreakId: s,
+                                position: t,
+                                opportunityId: he(),
+                                currentAdNumber: a,
+                                totalAdAmount: n
+                            }), this.__monetization.setNrAds(a, n), this.__monetization.requestAd({
+                                position: t,
+                                onFinish: c
+                            })
+                        }), 0)
+                    };
+                z.clearVideoDataAnnotations(), z.addVideoDataAnnotations({
+                    adBreakId: s,
+                    position: t,
+                    opportunityId: he(),
+                    currentAdNumber: 1,
+                    totalAdAmount: n
+                }), this.__monetization.requestAd({
+                    position: t,
+                    onFinish: c,
+                    onStart: () => {
+                        if (this.__monetization.setNrAds(a, n), "function" == typeof o) try {
+                            o()
+                        } catch (e) {
+                            console.error("%cPOKI:%c error in onStart callback of PokiSDK.runVideoAd()", "font-weight: bold", "", e)
+                        }
+                    }
+                })
+            }));
+            #T = () => {
+                window.removeEventListener("pointermove", this.#T), document.removeEventListener("keydown", this.#T), Z.track(e.tracking.screen.playerActive), this.#f = setTimeout((() => {
+                    window.addEventListener("pointermove", this.#T), document.addEventListener("keydown", this.#T)
+                }), 6e5)
+            };
+            #E = e => {
+                var t;
+                "pointerdown" === e.type ? this.#h = "pointerdown" : "keydown" === e.type ? this.#h = `keydown-${e.code}` : this.#h = "unknown", t = performance.now(), Cn = t
+            };
+            __logCall = (e, ...t) => {
+                if (!V.isPlayground) {
+                    for (let e = 0; e < t.length; e++) void 0 === t[e] && (t[e] = "");
+                    ! function(e, ...t) {
+                        console.info(`%cPOKI:%c ${e}`, "background-color: green; border-radius: 3px; color: white; padding: 1px 5px", "", ...t)
+                    }(`PokiSDK.${e}(`, ...t, ")")
+                }
+            };
+            setDebugTouchOverlayController = () => {};
+            gameInteractive = () => {};
+            gameLoadingProgress = () => {};
+            gameLoadingStart = () => {};
+            getLeaderboard = () => Promise.resolve([]);
+            happyTime = () => {};
+            sendHighscore = () => {};
+            setPlayerAge = () => {};
+            roundStart = () => {};
+            roundEnd = () => {};
+            getUser = async () => this.#k.getUser();
+            getToken = async () => this.#k.getToken();
+            login = async () => this.#k.login()
+        },
+        Nn = {
+            adTagUrl: "//pubads.g.doubleclick.net/gampad/ads?sz=640x360|640x480&iu=/1053551/Pub-Poki-Generic&ciu_szs&impl=s&gdfp_req=1&env=vp&output=xml_vast2&unviewed_position_start=1&url={url}&description_url={descriptionUrl}&correlator={timestamp}&nofb=1",
+            adTiming: {
+                preroll: !1,
+                timeBetweenAds: 12e4,
+                timePerTry: 7e3,
+                startAdsAfter: 12e4
+            },
+            waterfallRetries: 2
+        };
+
+    function Bn(e) {
+        let t = `/21682198607/debug-display/debug-display-${e}`;
+        return F.debug || (t = V.isPokiIframe ? `/21682198607/${V.device}_ingame_${e}/${V.siteID}_${V.device}_ingame_${e}` : V.isPokiExternal ? `/21682198607/external_${V.device}_display_platform` : `/21682198607/external_${V.device}_display_ingame/external_${V.device}_ingame_${e}`), t
+    }
+    const Rn = () => {
+        let {
+            pathname: e
+        } = window.location;
+        "/" !== e[0] && (e = `/${e}`);
+        let t = "";
+        window.top !== window && (t = encodeURIComponent(document.referrer));
+        return yt(`https://devs-api.poki.com/gameinfo/@sdk?href=${encodeURIComponent(`${window.location.protocol}//${window.location.host}${e}${window.location.search}`)}&referrer=${t}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "text/plain"
+            }
+        }).then((async e => {
+            if (e.status >= 200 && e.status < 400) {
+                const t = await e.json();
+                if (!t.game_id) return;
+                return {
+                    gameID: t.game_id,
+                    gameTitle: t.game_name,
+                    playtestRecord: t.playtest_record,
+                    playtestVersion: t.playtest_version,
+                    playtestDeviceCategory: t.playtest_device_category,
+                    playtestNewUser: t.playtest_new_user,
+                    playtestRequestID: t.playtest_request_id,
+                    metrictestID: t.metrictest_id,
+                    metrictestVersion: t.metrictest_version,
+                    metrictestDeviceCategory: t.metrictest_device_category,
+                    cachedContentGameID: t.cached_content_game_id,
+                    specialConditions: t.ad_settings.special_conditions,
+                    adTiming: {
+                        preroll: t.ad_settings.preroll,
+                        timePerTry: t.ad_settings.time_per_try,
+                        timeBetweenAds: t.ad_settings.time_between_ads,
+                        startAdsAfter: t.ad_settings.start_ads_after
+                    }
+                }
+            }
+            throw e
+        })).catch((e => async function(e) {
+            console.warn("%cPOKI:%c failed request p4d info", "font-weight: bold", "", e);
+            try {
+                let {
+                    pathname: t
+                } = window.location;
+                "/" !== t[0] && (t = `/${t}`);
+                const n = JSON.stringify({
+                        c: "sdk-p4d-error",
+                        ve: 7,
+                        d: [{
+                            k: "error",
+                            v: JSON.stringify({
+                                status: e.status,
+                                json: e.json && await e.json(),
+                                body: JSON.stringify({
+                                    href: `${window.location.protocol}//${window.location.host}${t}${window.location.search}`
+                                }),
+                                name: e.name,
+                                message: e.message
+                            })
+                        }]
+                    }),
+                    o = "https://t.poki.io/l";
+                if (navigator.sendBeacon) navigator.sendBeacon(o, n);
+                else try {
+                    const e = new XMLHttpRequest;
+                    e.open("POST", o, !0), e.send(n)
+                } catch {}
+            } catch {}
+        }(e)))
+    };
+
+    function jn() {
+        const e = document.getElementById("poki-playtest-popup-reject"),
+            t = document.getElementById("poki-playtest-popup-resolve");
+        e?.removeEventListener("pointerdown", jn), t?.removeEventListener("pointerdown", jn), document.getElementById("poki-playtest-popup-wrapper")?.remove(), document.getElementById("poki-playtest-template-markup")?.remove(), document.getElementById("poki-playtest-template-style")?.remove()
+    }
+
+    function Vn(e) {
+        e.stopImmediatePropagation()
+    }
+
+    function Gn({
+        gameTitle: e,
+        rejectCallback: t,
+        resolveCallback: n
+    }) {
+        const o = document.body;
+        ! function(e) {
+            const t = document.createElement("template");
+            t.innerHTML = '\n\t<template id="poki-playtest-template-markup">\n\t\t<div class="poki-playtest-popup-scope-reset poki-playtest-popup-wrapper" id="poki-playtest-popup-wrapper">\n\t\t\t<div class="poki-playtest-popup-scope-reset poki-playtest-popup">\n\t\t\t\t<header class="poki-playtest-popup-scope-reset poki-playtest-popup__header">\n\t\t\t\t\t<img class="poki-playtest-popup-scope-reset poki-playtest-popup__header__img" width="36" height="36" src="https://a.poki-cdn.com/playtest/playtest-icon.svg" alt="Lab icon">\n\t\t\t\t\t<h2 class="poki-playtest-popup-scope-reset poki-playtest-popup__header__title">Hey there, adventurer</h2>\n\t\t\t\t</header>\n\n\t\t\t\t<div class="poki-playtest-popup-scope-reset poki-playtest-popup__content">\n\t\t\t\t\t<p>You found a mystery game and have been selected to test it out! When you join the playtest, we&apos;ll record your gameplay to see all the fun (and maybe some goofy) moments you encounter. This helps the developer figure out what rocks and what needs a little extra magic in their game. Don&apos;t worry, your gameplay recording will be deleted after 365 days.</p>\n\t\t\t\t\t<p>And hey, if you&apos;re not feeling it, no biggie - you can refuse the playtest and still play the game just like normal. For more information, please read our <a href="https://a.poki-cdn.com/playtest/2025.07.31_Poki_Playtest_Privacy_Statement.pdf" download="2025-07-31 Poki Playtest Privacy Statement.pdf" target="_blank">Privacy Statement Playtest</a>.</p>\n\t\t\t\t\t<h3>Do you consent to join the playtest of <span id="poki-playtest-popup-game-title">%GAME_TITLE%</span>?</h3>\n\t\t\t\t\t<p><small>Please note that this game has been uploaded independently by this game&apos;s developer and has not yet been verified by the Poki team. If you run into any trouble, contact us at <strong><a href="mailto:hello@poki.com">hello@poki.com</a></strong></small></p>\n\t\t\t\t</div>\n\n\t\t\t\t<div class="poki-playtest-popup-scope-reset poki-playtest-popup__actions">\n\t\t\t\t\t<button type="button" id="poki-playtest-popup-reject" class="poki-playtest-popup-scope-reset poki-playtest-popup__button">No, thanks</button>\n\t\t\t\t\t<button type="button" id="poki-playtest-popup-resolve" class="poki-playtest-popup-scope-reset poki-playtest-popup__button">Yes, let\'s go</button>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t</div>\n\t</template>\n', e.appendChild(t.content);
+            const n = document.createElement("style");
+            n.innerHTML = '\n\t.poki-playtest-popup {\n\t\tall: unset;\n\n\t\t& *,\n\t\t& *::before,\n\t\t& *::after {\n\t\t\tbox-sizing: border-box;\n\t\t}\n\t}\n\n\t.poki-playtest-popup {\n\t\tborder-radius: 16px;\n\t\tbackground: #FFF;\n\t\tbox-shadow: 0px 60px 24px 0px rgba(93, 107, 132, 0.03), 0px 34px 20px 0px rgba(93, 107, 132, 0.09), 0px 15px 15px 0px rgba(93, 107, 132, 0.15), 0px 4px 8px 0px rgba(93, 107, 132, 0.18);\n\n\t\tdisplay: flex;\n\t\tmax-width: 480px;\n\t\tmin-width: 320px;\n\t\twidth: 100%;\n\t\tpadding: 8px 0 16px 0;\n\t\tflex-direction: column;\n\t\talign-items: flex-start;\n\t\tgap: 16px;\n\t\tcolor: #002B50;\n\n\t\tposition: fixed;\n\t\tz-index: 99999;\n\t\ttop: 50%;\n\t\tleft: 50%;\n\t\ttransform: translate(-50%, -50%);\n\t}\n\n\t.poki-playtest-popup__header {\n\t\t\tdisplay: flex;\n\t\t\twidth: 100%;\n\t\t\tpadding: 8px 16px 16px;\n\t\t\talign-items: center;\n\t\t\tgap: 12px;\n\t\t\tborder-bottom: 2px solid #F0F5FC;\n\t}\n\n\t.poki-playtest-popup__header__img {\n\t\tall: unset;\n\t}\n\n\t.poki-playtest-popup__header__title {\n\t\tfont: 700 24px/1.16 Torus, sans-serif;\n\t\tmargin: 0;\n\t}\n\n\t.poki-playtest-popup__content {\n\t\tfont: 400 14px/1.57 "Proxima Nova", sans-serif;\n\t\tpadding: 0 16px;\n\n\t\ta {\n\t\t\tcolor: #0074E0;\n\t\t\tpointer-events: auto;\n\n\t\t\t&:hover {\n\t\t\t\tcolor: #009CFF;\n\t\t\t}\n\t\t}\n\n\t\tp {\n\t\t\tmargin: 8px 0 0;\n\n\t\t\t&:first-child {\n\t\t\t\tmargin-top: 0;\n\t\t\t}\n\n\t\t\tsmall {\n\t\t\t\tall: unset;\n\t\t\t}\n\n\t\t\t&:has(small) {\n\t\t\t\tcolor: #5D6B84;\n\t\t\t\tfont-size: 12px;\n\t\t\t\tline-height: 1.33;\n\t\t\t\tletter-spacing: 0.3px;\n\t\t\t}\n\t\t}\n\n\t\th3 {\n\t\t\tfont-weight: 700;\n\t\t\tfont-size: 16px;\n\t\t\tline-height: 1.5;\n\t\t\tmargin: 16px 0 14px;\n\t\t}\n\t}\n\n\t@media screen and (max-width: 640px) {\n\t\t.poki-playtest-popup {\n\t\t\tgap: 8px;\n\t\t\tpadding: 8px 0 12px 0;\n\t\t}\n\t\t.poki-playtest-popup__header {\n\t\t\tpadding: 0px 16px 0px;\n\t\t\talign-items: center;\n\t\t\tgap: 8px;\n\t\t}\n\t\t.poki-playtest-popup__content {\n\t\t\tfont-size: 12px;\n\t\t\tline-height: 1.33;\n\t\t}\n\t}\n\n\t.poki-playtest-popup__actions {\n\t\tdisplay: flex;\n\t\twidth: 100%;\n\t\tpadding: 8px 16px 0;\n\t\tgap: 16px;\n\t\tjustify-content: center;\n\t}\n\n\t.poki-playtest-popup__button {\n\t\tdisplay: flex;\n\t\tpadding: 7px 24px 9px;\n\t\tborder: none;\n\t\tmargin: 0;\n\t\tjustify-content: center;\n\t\talign-items: center;\n\t\tflex: 1 0 0;\n\t\tborder-radius: 24px;\n\t\tbackground: #009CFF;\n\t\tcursor: pointer;\n\t\tpointer-events: auto;\n\n\t\tcolor: #FFF;\n\t\tfont: 700 16px/1.25 Torus, sans-serif;\n\n\t\t&:hover {\n\t\t\tbackground-color: #0074E0;\n\t\t}\n\t}\n\n\t.poki-playtest-popup-wrapper {\n\t\tall: unset;\n\t\tposition: fixed;\n\t\ttop: 0;\n\t\tleft: 0;\n\t\tbackground: #002B50AF;\n\t\twidth: 100%;\n\t\theight: 100%;\n\t\tz-index: 99998;\n\t}\n\n\t.poki-playtest-popup-scope-reset {\n\t\tletter-spacing: normal;\n\t\ttext-align: left;\n\t\ttext-decoration: none;\n\t\ttext-indent: 0;\n\t\ttext-shadow: none;\n\t\ttext-transform: none;\n\t\twhite-space: normal;\n\t\tword-spacing: normal;\n\t}\n', n.id = "poki-playtest-template-style", e.appendChild(n)
+        }(o);
+        const r = document.getElementById("poki-playtest-template-markup").content.cloneNode(!0);
+        r.querySelector("#poki-playtest-popup-game-title").textContent = e, async function() {
+            const e = new FontFace("ProximaNova", "url(https://a.poki-cdn.com/fonts/proxima-nova-regular-latin.woff2)").load(),
+                t = new FontFace("ProximaNova", "url(https://a.poki-cdn.com/fonts/proxima-nova-bold-latin.woff2)", {
+                    weight: "bold"
+                }).load(),
+                n = new FontFace("Torus", "url(https://a.poki-cdn.com/fonts/torus-bold-latin.woff2)").load(),
+                [o, r, i] = await Promise.all([e, t, n]);
+            document.fonts.add(o), document.fonts.add(r), document.fonts.add(i)
+        }().then((() => {
+            o.appendChild(r),
+                function({
+                    rejectCallback: e,
+                    resolveCallback: t
+                }) {
+                    const n = document.getElementById("poki-playtest-popup-reject"),
+                        o = document.getElementById("poki-playtest-popup-resolve");
+                    n?.addEventListener("pointerup", (() => {
+                        setTimeout(jn, 10), e()
+                    })), o?.addEventListener("pointerup", (() => {
+                        setTimeout(jn, 10), t()
+                    }));
+                    const r = document.getElementById("poki-playtest-popup-wrapper");
+                    r && ["pointerdown", "pointerup", "pointermove", "click", "mousedown", "mouseup", "mousemove", "touchstart", "touchend", "touchmove", "contextmenu", "dragstart"].forEach((e => r.addEventListener(e, Vn)))
+                }({
+                    rejectCallback: t,
+                    resolveCallback: n
+                })
+        }))
+    }
+
+    function Fn(e) {
+        const t = [];
+        let n = 0;
+        for (let o = 0; o < e.length; o++) {
+            if (n > 0) {
+                n--;
+                continue
+            }
+            const r = e[o];
+            if ("string" == typeof r) n = (r.match(/%c/g) || []).length, t.push(r.replace(/%c/g, ""));
+            else try {
+                t.push(String(r))
+            } catch (e) {
+                t.push(`<${e.message}>`)
+            }
+        }
+        return t.join(" ")
+    }
+    let Un = 0,
+        Kn = 0;
+
+    function zn() {
+        return Un
+    }
+    const Hn = window.requestAnimationFrame;
+
+    function qn(e) {
+        fetch("https://mystery-game-tile.poki.io/v0/metric", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(e)
+        })
+    }
+
+    function Yn(e) {
+        const t = Math.random().toString(36).substring(2);
+        let n = 0,
+            o = !1,
+            r = 0,
+            i = 0,
+            a = 0,
+            s = [];
+        const c = () => {
+            a++, Hn(c)
+        };
+        c(), setInterval((() => {
+            s.push(a), a = 0
+        }), 1e3);
+        window.addEventListener("beforeunload", (() => {
+            const a = zn() > 0,
+                c = s,
+                d = performance.now();
+            s = [], o || (n = d), qn({
+                metrictest_id: e.metrictestID,
+                play_id: t,
+                started: a,
+                duration: n,
+                total_duration: d,
+                timed_out: !0,
+                sdk_version: "f28c2657cb1b4394dc39366cb5c5f54ab14f1002",
+                fpss: c,
+                upvotes: r,
+                downvotes: i,
+                have_interaction: Dn() > 0
+            })
+        }));
+        window.addEventListener("message", (e => {
+            e.data && "vote" === e.data.type && (e.data.direction < 0 ? i++ : e.data.direction > 0 && r++)
+        }));
+        return setInterval((() => {
+            const a = zn() > 0,
+                c = s,
+                d = performance.now();
+            if (s = [], !o) {
+                n = d;
+                const e = 6e4;
+                d - Math.max(Kn, Dn()) > e && (o = !0)
+            }
+            qn({
+                metrictest_id: e.metrictestID,
+                play_id: t,
+                started: a,
+                duration: n,
+                total_duration: d,
+                timed_out: o,
+                sdk_version: "f28c2657cb1b4394dc39366cb5c5f54ab14f1002",
+                fpss: c,
+                upvotes: r,
+                downvotes: i,
+                have_interaction: Dn() > 0
+            })
+        }), 1e4), t
+    }
+    let Wn = !1;
+    try {
+        "1" === localStorage.getItem("poki_pbf") ? Wn = !0 : V.isPlayground || "GB" === V.country || localStorage.setItem("poki_pbf", "1")
+    } catch {}
+
+    function $n() {
+        if (void 0 === window.MediaRecorder) return;
+        let e = 'video/webm;codecs="vp9"';
+        return ("undefined" != typeof navigator && /(iPad|iPhone|iPod)/gi.test(navigator.userAgent) || Dt || Lt) && (e = 'video/mp4;codecs="avc1.42000d"'), MediaRecorder.isTypeSupported(e) ? e : void 0
+    }
+    let Jn = (e, t) => {},
+        Qn = [],
+        Zn = null,
+        Xn = 0;
+    const eo = [...Object.values(e.tracking.screen), e.tracking.ads.status.completed, e.tracking.ads.status.error, e.tracking.ads.status.limit, e.tracking.ads.video.progress],
+        to = {
+            [e.tracking.screen.commercialBreak]: "commercialBreak",
+            [e.tracking.screen.gameLoadingFinished]: "gameLoadingFinished",
+            [e.tracking.screen.gameplayStart]: "gameplayStart",
+            [e.tracking.screen.gameplayStop]: "gameplayStop",
+            [e.tracking.screen.rewardedBreak]: "rewardedBreak"
+        };
+    let no = [],
+        oo = [];
+    try {
+        const e = e => {
+            const t = console[e];
+            console[e] = (...n) => {
+                t.apply(console, n), oo && oo.push({
+                    timeMs: performance.now(),
+                    level: e,
+                    message: Fn(n)
+                })
+            }, no.push((() => {
+                console[e] = t
+            }))
+        };
+        V.gameID && !V.isPlayground && !V.isPokiExternal && V.isPokiIframe && (e("log"), e("info"), e("warn"), e("error"))
+    } catch {}
+
+    function ro() {
+        Qn = null, no.forEach((e => e())), no = [], oo = null
+    }
+
+    function io(t, n, o) {
+        console.info("%cPOKI_PLAYTEST:%c start recording using codec", "font-weight: bold", "", n);
+        const r = Sn(t, (() => {
+            Zn?.close(1e3, "Playtest recording stopped")
+        }));
+        r && (Zn = new WebSocket("wss://playtest-recorder.poki.io/ws"), Zn.addEventListener("error", (() => {
+            Z.track(e.tracking.playtest.error, {
+                message: "websocket error"
+            }), console.info("%cPOKI_PLAYTEST:%c error", "font-weight: bold", "")
+        })), Zn.addEventListener("open", (() => {
+            if (!Zn) return;
+            if (Zn.readyState === Zn.OPEN) {
+                let e;
+                try {
+                    const t = document.createElement("canvas"),
+                        n = {
+                            powerPreference: "high-performance",
+                            failIfMajorPerformanceCaveat: !1
+                        };
+                    let o = t.getContext("webgl2", n);
+                    if (o || (o = t.getContext("webgl", n), o || (o = t.getContext("experimental-webgl", n))), o) {
+                        const t = o,
+                            n = t.getExtension("WEBGL_debug_renderer_info");
+                        n && (e = t.getParameter(n.UNMASKED_RENDERER_WEBGL)), e || (e = t.getParameter(t.RENDERER))
+                    }
+                } catch {}
+                const n = JSON.stringify({
+                    type: "save",
+                    game_id: V.gameID,
+                    version_id: V.versionID,
+                    playtest_request_id: o,
+                    webgl_renderer: e,
+                    sdk_version: "f28c2657cb1b4394dc39366cb5c5f54ab14f1002",
+                    cpus: navigator.hardwareConcurrency,
+                    device_pixel_ratio: window.devicePixelRatio || 1,
+                    canvasses: t.length
+                });
+                Zn.send(n), console.info("%cPOKI_PLAYTEST:%c websocket open", "font-weight: bold", "", n)
+            }
+            const i = new MediaRecorder(r, {
+                    mimeType: n,
+                    videoBitsPerSecond: 5e5
+                }),
+                a = performance.now(),
+                s = e => Math.round((e || performance.now()) - a);
+            i.addEventListener("stop", (() => {
+                console.info("%cPOKI_PLAYTEST:%c recording stopped", "font-weight: bold", "")
+            })), i.addEventListener("error", (e => {
+                console.warn("%cPOKI_PLAYTEST:%c", "font-weight: bold", "", e.error)
+            })), i.addEventListener("dataavailable", (e => {
+                e.data.size > 0 && Zn && Zn.readyState === Zn.OPEN && Zn.send(e.data)
+            })), i.start(250);
+            const c = {};
+            let d = !1;
+            document.addEventListener("keydown", (e => {
+                c[e.code] || (c[e.code] = !0, d = !0)
+            })), document.addEventListener("keyup", (e => {
+                c[e.code] && (c[e.code] = !1, d = !0)
+            }));
+            const l = setInterval((() => {
+                const e = Object.keys(c);
+                d && e.length > 0 && Zn && Zn.readyState === Zn.OPEN && Zn.send(JSON.stringify({
+                    type: "keyboard",
+                    offset: s(),
+                    keys: c
+                })), d = !1, e.forEach((e => {
+                    c[e] || delete c[e]
+                }))
+            }), 50);
+            Jn = (e, t) => {
+                if (!Zn || Zn.readyState !== Zn.OPEN) return;
+                Zn.send(te({
+                    type: "sdk-event",
+                    offset: s(t),
+                    event: e
+                }));
+                const n = to[e];
+                n && Zn.send(te({
+                    type: "console",
+                    offset: s(t),
+                    level: "log",
+                    message: `PokiSDK.${n}()`
+                }))
+            }, null !== Qn && (Qn.forEach((e => {
+                Jn(e.event, e.timeMs)
+            })), Qn = null), le = e => {
+                Zn && Zn.readyState === Zn.OPEN && Zn.send(JSON.stringify({
+                    type: "error",
+                    offset: s(),
+                    error: e
+                }))
+            }, no.forEach((e => e())), no = [];
+            try {
+                const e = e => {
+                    const t = console[e];
+                    console[e] = (...n) => {
+                        t.apply(console, n), Zn && Zn.readyState === Zn.OPEN && Zn.send(JSON.stringify({
+                            type: "console",
+                            offset: s(),
+                            level: e,
+                            message: Fn(n)
+                        }))
+                    }, no.push((() => {
+                        console[e] = t
+                    }))
+                };
+                e("log"), e("info"), e("warn"), e("error")
+            } catch {}
+            oo && (oo.forEach((e => {
+                Zn && Zn.readyState === Zn.OPEN && Zn.send(JSON.stringify({
+                    type: "console",
+                    offset: s(e.timeMs),
+                    level: e.level,
+                    message: e.message
+                }))
+            })), oo = null), Ot() === St && Zn.send(JSON.stringify({
+                type: "console",
+                offset: s(),
+                level: "log",
+                message: "No canvas found, using HTML capture"
+            }));
+            const u = ({
+                position: t
+            }) => {
+                if (!Zn || Zn.readyState !== Zn.OPEN) return;
+                let n = e.tracking.screen.commercialBreak,
+                    o = "Commercial Break";
+                t === e.ads.position.rewarded && (n = e.tracking.screen.rewardedBreak, o = "Rewarded Break"), bn(o), Zn.send(JSON.stringify({
+                    type: "sdk-event",
+                    offset: s(),
+                    event: n
+                }))
+            };
+            z.addEventListener(e.playtest.startVideo, u);
+            const p = () => {
+                bn("")
+            };
+            z.addEventListener(e.playtest.stopVideo, p);
+            const m = new be(1),
+                f = setInterval((() => {
+                    Zn && Zn.readyState === Zn.OPEN && Zn.send(JSON.stringify({
+                        type: "fps",
+                        offset: s(),
+                        stats: m.stats()
+                    }))
+                }), 1e3);
+            Zn.addEventListener("close", (t => {
+                console.info("%cPOKI_PLAYTEST:%c websocket closed", "font-weight: bold", "", t), Jn = () => {}, z.removeEventListener(e.playtest.startVideo, u), z.removeEventListener(e.playtest.stopVideo, p), clearInterval(l), clearInterval(f), i.stop(), Ut = !0, Zn = null, ro(), Z.track(e.tracking.playtest.closed, {
+                    reason: `${t.reason}:${t.code}:${t.wasClean}`
+                })
+            }))
+        })))
+    }
+    $ = function(t) {
+        var n;
+        if (n = performance.now(), Kn = n, t.event === e.tracking.screen.gameLoadingFinished ? Xn = performance.now() : t.event === e.tracking.screen.gameplayStart && function(e) {
+                Un = e
+            }(performance.now()), eo.includes(t.event)) try {
+            Jn(t.event), null !== Qn && Qn.push({
+                event: t.event,
+                timeMs: performance.now()
+            })
+        } catch (e) {
+            console.warn("%cPOKI_PLAYTEST:%c", "font-weight: bold", "", e)
+        }
+    };
+
+    function ao(t) {
+        const n = function(e) {
+                if ("1" === O("playtest")) return !0;
+                if (!V.country) return !1;
+                if (!V.isPokiIframe) return !1;
+                if (!e.playtestRecord) return !1;
+                if (e.playtestVersion && e.playtestVersion !== V.versionID) return !1;
+                if (e.playtestNewUser && Wn) return !1;
+                const t = C() || D() || Dt;
+                if ("desktop" === e.playtestDeviceCategory && t) return !1;
+                if ("mobile" === e.playtestDeviceCategory && !t) return !1;
+                if (["GB", "NL", "CA"].includes(V.country)) return !1;
+                const n = navigator;
+                if (n.connection && n.connection.effectiveType && "4g" !== n.connection.effectiveType) return !1;
+                if (n?.hardwareConcurrency < 8) return !1;
+                if (!document.createElement("canvas").getContext("webgl2", {
+                        failIfMajorPerformanceCaveat: !0
+                    })) return !1;
+                if (Lt) {
+                    const e = n.userAgent.match(/Version\/([\d]+)/);
+                    if (!e || parseInt(e[1], 10) < 18) return !1
+                } else if (void 0 === window.MediaStreamTrackProcessor) return !1;
+                return !0
+            }(t),
+            o = $n(),
+            r = "1" === O("playerfittest");
+        if (n && o && !r) {
+            var i;
+            Z.track(e.tracking.playtest.showModal, {
+                show: !0
+            }), console.info("%cPOKI_PLAYTEST:%c init", "font-weight: bold", "", o), (i = t?.gameTitle || "this game", new Promise(((e, t) => {
+                console.info("%cPOKI_PLAYTEST:%c showing consent screen", "font-weight: bold", ""), Gn({
+                    rejectCallback: t,
+                    resolveCallback: e,
+                    gameTitle: i
+                })
+            }))).then((() => {
+                Z.track(e.tracking.playtest.accepted);
+                const n = performance.now() + 6e4;
+                let r = 0,
+                    i = performance.now();
+                const a = setInterval((() => {
+                    const s = performance.now();
+                    if (! function() {
+                            const e = window;
+                            return !!(e.pc && (e.pc.app || e.pc.AppBase) || e.c3_runtimeInterface || e._dmJSDeviceShared || e.g_WebAudioContext || e.unityGame)
+                        }()) {
+                        const t = kt() || 0;
+                        t !== r && (r = t, i = s), (Xn && s - Xn > 1e4 || s - i > 1e4) && (Z.track(e.tracking.playtest.noCanvas), console.info("%cPOKI_PLAYTEST:%c no canvas found, switch to HTML capture", "font-weight: bold", ""), Ct(St))
+                    }
+                    const c = An();
+                    if (c.length) {
+                        clearInterval(a), Z.track(e.tracking.playtest.starting);
+                        try {
+                            io(c, o, t.playtestRequestID)
+                        } catch {}
+                    }
+                    s > n && (Z.track(e.tracking.playtest.notLoaded), clearInterval(a), console.info("%cPOKI_PLAYTEST:%c no gameLoadingFinished within 2 minutes", "font-weight: bold", ""), ro())
+                }), 1e3)
+            })).catch((t => {
+                Z.track(e.tracking.playtest.rejected), console.info("%cPOKI_PLAYTEST:%c rejected", "font-weight: bold", "", t), ro()
+            }))
+        } else {
+            if (r || t.metrictestID && V.isPokiIframe) {
+                const n = Yn(t);
+                Z.track(e.tracking.playerfittest.starting, {
+                    playId: n
+                })
+            }
+            ro()
+        }
+    }
+
+    function so(e, t) {
+        (null == t || t > e.length) && (t = e.length);
+        for (var n = 0, o = Array(t); n < t; n++) o[n] = e[n];
+        return o
+    }
+
+    function co(e, t) {
+        if (!(e instanceof t)) throw new TypeError("Cannot call a class as a function")
+    }
+
+    function lo(e, t, n) {
+        return t && function(e, t) {
+            for (var n = 0; n < t.length; n++) {
+                var o = t[n];
+                o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, go(o.key), o)
+            }
+        }(e.prototype, t), Object.defineProperty(e, "prototype", {
+            writable: !1
+        }), e
+    }
+
+    function uo(e, t, n) {
+        return (t = go(t)) in e ? Object.defineProperty(e, t, {
+            value: n,
+            enumerable: !0,
+            configurable: !0,
+            writable: !0
+        }) : e[t] = n, e
+    }
+
+    function po(e, t) {
+        var n = Object.keys(e);
+        if (Object.getOwnPropertySymbols) {
+            var o = Object.getOwnPropertySymbols(e);
+            t && (o = o.filter((function(t) {
+                return Object.getOwnPropertyDescriptor(e, t).enumerable
+            }))), n.push.apply(n, o)
+        }
+        return n
+    }
+
+    function mo(e) {
+        for (var t = 1; t < arguments.length; t++) {
+            var n = null != arguments[t] ? arguments[t] : {};
+            t % 2 ? po(Object(n), !0).forEach((function(t) {
+                uo(e, t, n[t])
+            })) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(n)) : po(Object(n)).forEach((function(t) {
+                Object.defineProperty(e, t, Object.getOwnPropertyDescriptor(n, t))
+            }))
+        }
+        return e
+    }
+
+    function fo(e, t) {
+        return function(e) {
+            if (Array.isArray(e)) return e
+        }(e) || function(e, t) {
+            var n = null == e ? null : "undefined" != typeof Symbol && e[Symbol.iterator] || e["@@iterator"];
+            if (null != n) {
+                var o, r, i, a, s = [],
+                    c = !0,
+                    d = !1;
+                try {
+                    if (i = (n = n.call(e)).next, 0 === t) {
+                        if (Object(n) !== n) return;
+                        c = !1
+                    } else
+                        for (; !(c = (o = i.call(n)).done) && (s.push(o.value), s.length !== t); c = !0);
+                } catch (e) {
+                    d = !0, r = e
+                } finally {
+                    try {
+                        if (!c && null != n.return && (a = n.return(), Object(a) !== a)) return
+                    } finally {
+                        if (d) throw r
+                    }
+                }
+                return s
+            }
+        }(e, t) || yo(e, t) || function() {
+            throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")
+        }()
+    }
+
+    function go(e) {
+        var t = function(e, t) {
+            if ("object" != typeof e || !e) return e;
+            var n = e[Symbol.toPrimitive];
+            if (void 0 !== n) {
+                var o = n.call(e, t);
+                if ("object" != typeof o) return o;
+                throw new TypeError("@@toPrimitive must return a primitive value.")
+            }
+            return String(e)
+        }(e, "string");
+        return "symbol" == typeof t ? t : t + ""
+    }
+
+    function ho(e) {
+        return ho = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(e) {
+            return typeof e
+        } : function(e) {
+            return e && "function" == typeof Symbol && e.constructor === Symbol && e !== Symbol.prototype ? "symbol" : typeof e
+        }, ho(e)
+    }
+
+    function yo(e, t) {
+        if (e) {
+            if ("string" == typeof e) return so(e, t);
+            var n = {}.toString.call(e).slice(8, -1);
+            return "Object" === n && e.constructor && (n = e.constructor.name), "Map" === n || "Set" === n ? Array.from(e) : "Arguments" === n || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n) ? so(e, t) : void 0
+        }
+    }
+    var wo = lo((function e(t) {
+        co(this, e), this.p = new Promise(t)
+    }));
+    wo.__typeson__type__ = "TypesonPromise", "undefined" != typeof Symbol && Object.defineProperty(wo.prototype, Symbol.toStringTag, {
+        get: function() {
+            return "TypesonPromise"
+        }
+    }), wo.prototype.then = function(e, t) {
+        var n = this;
+        return new wo((function(o, r) {
+            n.p.then((function(t) {
+                o(e ? e(t) : t)
+            })).catch((function(e) {
+                return t ? t(e) : Promise.reject(e)
+            })).then(o, r)
+        }))
+    }, wo.prototype.catch = function(e) {
+        return this.then((function() {}), e)
+    }, wo.resolve = function(e) {
+        return new wo((function(t) {
+            t(e)
+        }))
+    }, wo.reject = function(e) {
+        return new wo((function(t, n) {
+            n(e)
+        }))
+    }, wo.all = function(e) {
+        return new wo((function(t, n) {
+            Promise.all(e.map((function(e) {
+                return null != e && e.constructor && "__typeson__type__" in e.constructor && "TypesonPromise" === e.constructor.__typeson__type__ ? e.p : e
+            }))).then(t, n)
+        }))
+    }, wo.race = function(e) {
+        return new wo((function(t, n) {
+            Promise.race(e.map((function(e) {
+                return null != e && e.constructor && "__typeson__type__" in e.constructor && "TypesonPromise" === e.constructor.__typeson__type__ ? e.p : e
+            }))).then(t, n)
+        }))
+    }, wo.allSettled = function(e) {
+        return new wo((function(t, n) {
+            Promise.allSettled(e.map((function(e) {
+                return null != e && e.constructor && "__typeson__type__" in e.constructor && "TypesonPromise" === e.constructor.__typeson__type__ ? e.p : e
+            }))).then(t, n)
+        }))
+    };
+    var vo = Object.hasOwn,
+        bo = Object.getPrototypeOf;
+
+    function ko(e, t) {
+        return _o(e) && "function" == typeof e.then && (!t || "function" == typeof e.catch)
+    }
+
+    function Ao(e) {
+        return Object.prototype.toString.call(e).slice(8, -1)
+    }
+
+    function So(e, t) {
+        if (!e || "object" !== ho(e)) return !1;
+        var n = bo(e);
+        if (!n) return null === t;
+        var o = vo(n, "constructor") && n.constructor;
+        return "function" != typeof o ? null === t : t === o || null !== t && Function.prototype.toString.call(o) === Function.prototype.toString.call(t) || "function" == typeof t && "string" == typeof o.__typeson__type__ && o.__typeson__type__ === t.__typeson__type__
+    }
+
+    function Eo(e) {
+        return !(!e || "Object" !== Ao(e)) && (!bo(e) || So(e, Object))
+    }
+
+    function Io(e) {
+        if (!e || "Object" !== Ao(e)) return !1;
+        var t = bo(e);
+        return !t || So(e, Object) || Io(t)
+    }
+
+    function _o(e) {
+        return null !== e && "object" === ho(e)
+    }
+
+    function Po(e) {
+        return e.replaceAll("''", "''''").replace(/^$/, "''").replaceAll("~", "~0").replaceAll(".", "~1")
+    }
+
+    function To(e) {
+        return e.replaceAll("~1", ".").replaceAll("~0", "~").replace(/^''$/, "").replaceAll("''''", "''")
+    }
+
+    function xo(e, t) {
+        if ("" === t) return e;
+        if (null === e || "object" !== ho(e)) throw new TypeError("Unexpected non-object type");
+        var n = t.indexOf(".");
+        if (-1 !== n) {
+            var o = e[To(t.slice(0, n))];
+            return void 0 === o ? void 0 : xo(o, t.slice(n + 1))
+        }
+        return e[To(t)]
+    }
+
+    function Oo(e, t, n) {
+        if ("" === t) return n;
+        if (!e || "object" !== ho(e)) throw new TypeError("Unexpected non-object type");
+        if ("__proto__" === t) throw new TypeError("Invalid property");
+        var o = t.indexOf(".");
+        return -1 !== o ? Oo(e[To(t.slice(0, o))], t.slice(o + 1), n) : (e[To(t)] = n, e)
+    }
+
+    function Co(e) {
+        return null === e ? "null" : Array.isArray(e) ? "array" : ho(e)
+    }
+
+    function Do(e, t, n) {
+        return e && e.then || (e = Promise.resolve(e)), t ? e.then(t) : e
+    }
+    var Lo = Object.keys,
+        Mo = Object.hasOwn,
+        No = Array.isArray,
+        Bo = ["type", "replaced", "iterateIn", "iterateUnsetNumeric", "addLength"];
+
+    function Ro(e) {
+        return function() {
+            for (var t = [], n = 0; n < arguments.length; n++) t[n] = arguments[n];
+            try {
+                return Promise.resolve(e.apply(this, t))
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        }
+    }
+
+    function jo(e, t) {
+        var n, o;
+        if ("" === e.keypath) return -1;
+        var r = null !== (n = e.keypath.match(/\./g)) && void 0 !== n ? n : 0,
+            i = null !== (o = t.keypath.match(/\./g)) && void 0 !== o ? o : 0;
+        return r && (r = r.length), i && (i = i.length), r > i ? -1 : r < i ? 1 : e.keypath < t.keypath ? -1 : e.keypath > t.keypath ? 1 : 0
+    }
+    var Vo = lo((function e(t) {
+            co(this, e), this.options = t, this.plainObjectReplacers = [], this.nonplainObjectReplacers = [], this.revivers = {}, this.types = {}
+        }), [{
+            key: "stringify",
+            value: function(e, t, n, o) {
+                o = mo(mo(mo({}, this.options), o), {}, {
+                    stringification: !0
+                });
+                var r = this.encapsulate(e, null, o);
+                return No(r) ? JSON.stringify(r[0], t, n) : r.then((function(e) {
+                    return JSON.stringify(e, t, n)
+                }))
+            }
+        }, {
+            key: "stringifySync",
+            value: function(e, t, n, o) {
+                return this.stringify(e, t, n, mo(mo({
+                    throwOnBadSyncType: !0
+                }, o), {}, {
+                    sync: !0
+                }))
+            }
+        }, {
+            key: "stringifyAsync",
+            value: function(e, t, n, o) {
+                return this.stringify(e, t, n, mo(mo({
+                    throwOnBadSyncType: !0
+                }, o), {}, {
+                    sync: !1
+                }))
+            }
+        }, {
+            key: "parse",
+            value: function(e, t, n) {
+                return n = mo(mo(mo({}, this.options), n), {}, {
+                    parse: !0
+                }), this.revive(JSON.parse(e, t), n)
+            }
+        }, {
+            key: "parseSync",
+            value: function(e, t, n) {
+                return this.parse(e, t, mo(mo({
+                    throwOnBadSyncType: !0
+                }, n), {}, {
+                    sync: !0
+                }))
+            }
+        }, {
+            key: "parseAsync",
+            value: function(e, t, n) {
+                return this.parse(e, t, mo(mo({
+                    throwOnBadSyncType: !0
+                }, n), {}, {
+                    sync: !1
+                }))
+            }
+        }, {
+            key: "specialTypeNames",
+            value: function(e, t) {
+                var n = arguments.length > 2 && void 0 !== arguments[2] ? arguments[2] : {};
+                return n.returnTypeNames = !0, this.encapsulate(e, t, n)
+            }
+        }, {
+            key: "rootTypeName",
+            value: function(e, t) {
+                var n = arguments.length > 2 && void 0 !== arguments[2] ? arguments[2] : {};
+                return n.iterateNone = !0, this.encapsulate(e, t, n)
+            }
+        }, {
+            key: "encapsulate",
+            value: function(e, t, n) {
+                var o = this,
+                    r = mo(mo({
+                        sync: !0
+                    }, this.options), n),
+                    i = r.sync,
+                    a = {},
+                    s = [],
+                    c = [],
+                    d = [],
+                    l = !("cyclic" in r) || r.cyclic,
+                    u = r.encapsulateObserver,
+                    p = function(e) {
+                        var t = Object.values(a);
+                        if (r.iterateNone) return t.length ? t[0] : Co(e);
+                        if (t.length) {
+                            if (r.returnTypeNames) return function(e) {
+                                return function(e) {
+                                    if (Array.isArray(e)) return so(e)
+                                }(e) || function(e) {
+                                    if ("undefined" != typeof Symbol && null != e[Symbol.iterator] || null != e["@@iterator"]) return Array.from(e)
+                                }(e) || yo(e) || function() {
+                                    throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")
+                                }()
+                            }(new Set(t));
+                            e && Eo(e) && !Mo(e, "$types") ? e.$types = a : e = {
+                                $: e,
+                                $types: {
+                                    $: a
+                                }
+                            }
+                        } else _o(e) && Mo(e, "$types") && (e = {
+                            $: e,
+                            $types: !0
+                        });
+                        return !r.returnTypeNames && e
+                    },
+                    m = Ro((function(e, t) {
+                        return Do(Promise.all(t.map((function(e) {
+                            return e[1].p
+                        }))), (function(n) {
+                            return Do(Promise.all(n.map(Ro((function(n) {
+                                var o = !1,
+                                    r = [],
+                                    i = fo(t.splice(0, 1), 1),
+                                    a = fo(i[0], 7),
+                                    s = a[0],
+                                    c = a[2],
+                                    d = a[3],
+                                    l = a[4],
+                                    u = a[5],
+                                    p = a[6],
+                                    f = g(s, n, c, d, r, !0, p),
+                                    h = So(f, wo);
+                                return function(e, t) {
+                                    var n = e();
+                                    return n && n.then ? n.then(t) : t(n)
+                                }((function() {
+                                    if (s && h) return Do(f.p, (function(t) {
+                                        l[u] = t;
+                                        var n = m(e, r);
+                                        return o = !0, n
+                                    }))
+                                }), (function(t) {
+                                    return o ? t : (s ? l[u] = f : e = h ? f.p : f, m(e, r))
+                                }))
+                            })))), (function() {
+                                return e
+                            }))
+                        }))
+                    })),
+                    f = function(e, t, n) {
+                        Object.assign(e, t);
+                        var o = Bo.map((function(t) {
+                            var n = e[t];
+                            return delete e[t], n
+                        }));
+                        n(), Bo.forEach((function(t, n) {
+                            e[t] = o[n]
+                        }))
+                    },
+                    g = function(e, t, n, i, d, l, p) {
+                        var m, y = {},
+                            w = ho(t),
+                            v = u ? function(o) {
+                                var r, a = null !== (r = null != p ? p : i.type) && void 0 !== r ? r : Co(t);
+                                u(Object.assign(null != o ? o : y, {
+                                    keypath: e,
+                                    value: t,
+                                    cyclic: n,
+                                    stateObj: i,
+                                    promisesData: d,
+                                    resolvingTypesonPromise: l,
+                                    awaitingTypesonPromise: So(t, wo)
+                                }, {
+                                    type: a
+                                }))
+                            } : null;
+                        if (["string", "boolean", "number", "undefined"].includes(w)) return void 0 === t || Number.isNaN(t) || t === Number.NEGATIVE_INFINITY || t === Number.POSITIVE_INFINITY || 0 === t ? (m = i.replaced ? t : h(e, t, i, d, !1, l, v)) !== t && (y = {
+                            replaced: m
+                        }) : m = t, v && v(), m;
+                        if (null === t) return v && v(), t;
+                        if (n && !i.iterateIn && !i.iterateUnsetNumeric && t && "object" === ho(t)) {
+                            var b = s.indexOf(t);
+                            if (-1 !== b) return a[e] = "#", v && v({
+                                cyclicKeypath: c[b]
+                            }), "#" + c[b];
+                            !0 === n && (s.push(t), c.push(e))
+                        }
+                        var k, A = Eo(t),
+                            S = No(t),
+                            E = (A || S) && (!o.plainObjectReplacers.length || i.replaced) || i.iterateIn ? t : h(e, t, i, d, A || S, null, v);
+                        if (E !== t ? (m = E, y = {
+                                replaced: E
+                            }) : "" === e && So(t, wo) ? (d.push([e, t, n, i, void 0, void 0, i.type]), m = t) : S && "object" !== i.iterateIn || "array" === i.iterateIn ? (k = new Array(t.length), y = {
+                                clone: k
+                            }) : (["function", "symbol"].includes(ho(t)) || "toJSON" in t || So(t, wo) || So(t, Promise) || So(t, ArrayBuffer)) && !A && "object" !== i.iterateIn ? m = t : (k = {}, i.addLength && (k.length = t.length), y = {
+                                clone: k
+                            }), v && v(), r.iterateNone) return null != k ? k : m;
+                        if (!k) return m;
+                        if (i.iterateIn) {
+                            var I = function(o) {
+                                var r = {
+                                    ownKeys: Mo(t, o)
+                                };
+                                f(i, r, (function() {
+                                    var r = e + (e ? "." : "") + Po(o),
+                                        a = g(r, t[o], Boolean(n), i, d, l);
+                                    So(a, wo) ? d.push([r, a, Boolean(n), i, k, o, i.type]) : void 0 !== a && (k[o] = a)
+                                }))
+                            };
+                            for (var _ in t) I(_);
+                            v && v({
+                                endIterateIn: !0,
+                                end: !0
+                            })
+                        } else Lo(t).forEach((function(o) {
+                            var r = e + (e ? "." : "") + Po(o);
+                            f(i, {
+                                ownKeys: !0
+                            }, (function() {
+                                var e = g(r, t[o], Boolean(n), i, d, l);
+                                So(e, wo) ? d.push([r, e, Boolean(n), i, k, o, i.type]) : void 0 !== e && (k[o] = e)
+                            }))
+                        })), v && v({
+                            endIterateOwn: !0,
+                            end: !0
+                        });
+                        if (i.iterateUnsetNumeric) {
+                            for (var P = t.length, T = function(o) {
+                                    if (!(o in t)) {
+                                        var r = "".concat(e).concat(e ? "." : "").concat(String(o));
+                                        f(i, {
+                                            ownKeys: !1
+                                        }, (function() {
+                                            var e = g(r, void 0, Boolean(n), i, d, l);
+                                            So(e, wo) ? d.push([r, e, Boolean(n), i, k, o, i.type]) : void 0 !== e && (k[o] = e)
+                                        }))
+                                    }
+                                }, x = 0; x < P; x++) T(x);
+                            v && v({
+                                endIterateUnsetNumeric: !0,
+                                end: !0
+                            })
+                        }
+                        return k
+                    },
+                    h = function(e, t, n, r, s, c, d) {
+                        for (var u = s ? o.plainObjectReplacers : o.nonplainObjectReplacers, p = u.length; p--;) {
+                            var m = u[p];
+                            if (m.test(t, n)) {
+                                var f = m.type;
+                                if (o.revivers[f]) {
+                                    var h = a[e];
+                                    a[e] = h ? [f].concat(h) : f
+                                }
+                                if (Object.assign(n, {
+                                        type: f,
+                                        replaced: !0
+                                    }), (i || !m.replaceAsync) && !m.replace) return d && d({
+                                    typeDetected: !0
+                                }), g(e, t, l && "readonly", n, r, c, f);
+                                d && d({
+                                    replacing: !0
+                                });
+                                var y = void 0;
+                                if (i || !m.replaceAsync) {
+                                    if (void 0 === m.replace) throw new TypeError("Missing replacer");
+                                    y = m.replace(t, n)
+                                } else y = m.replaceAsync(t, n);
+                                return g(e, y, l && "readonly", n, r, c, f)
+                            }
+                        }
+                        return t
+                    },
+                    y = g("", e, l, null != t ? t : {}, d);
+                if (d.length) return i && r.throwOnBadSyncType ? function() {
+                    throw new TypeError("Sync method requested but async result obtained")
+                }() : Promise.resolve(m(y, d)).then(p);
+                if (!i && r.throwOnBadSyncType) throw new TypeError("Async method requested but sync result obtained");
+                return r.stringification && i ? [p(y)] : i ? p(y) : Promise.resolve(p(y))
+            }
+        }, {
+            key: "encapsulateSync",
+            value: function(e, t, n) {
+                return this.encapsulate(e, t, mo(mo({
+                    throwOnBadSyncType: !0
+                }, n), {}, {
+                    sync: !0
+                }))
+            }
+        }, {
+            key: "encapsulateAsync",
+            value: function(e, t, n) {
+                return this.encapsulate(e, t, mo(mo({
+                    throwOnBadSyncType: !0
+                }, n), {}, {
+                    sync: !1
+                }))
+            }
+        }, {
+            key: "revive",
+            value: function(e, t) {
+                var n = this,
+                    o = mo(mo({
+                        sync: !0
+                    }, this.options), t),
+                    r = o.sync;
+
+                function i(e) {
+                    if (r) return e;
+                    if (o.throwOnBadSyncType) throw new TypeError("Async method requested but sync result obtained");
+                    return Promise.resolve(e)
+                }
+                if (!e || "object" !== ho(e) || Array.isArray(e)) return i(e);
+                var a = e.$types;
+                if (!0 === a) return i(e.$);
+                if (!a || "object" !== ho(a) || Array.isArray(a)) return i(e);
+                var s = [],
+                    c = {},
+                    d = !0;
+                a.$ && Eo(a.$) && (e = e.$, a = a.$, d = !1);
+                var l = function(e, t) {
+                        var o, i = fo(null !== (o = n.revivers[e]) && void 0 !== o ? o : [], 1)[0];
+                        if (!i) throw new Error("Unregistered type: " + e);
+                        if (r && !("revive" in i)) return t;
+                        if (!r && i.reviveAsync) return i.reviveAsync(t, c);
+                        if (i.revive) return i.revive(t, c);
+                        throw new Error("Missing reviver")
+                    },
+                    u = [];
+
+                function p(e) {
+                    return So(e, Go) ? void 0 : e
+                }
+                var m, f = function() {
+                    var t = [];
+                    if (!a) throw new Error("Found bad `types`");
+                    if (Object.entries(a).forEach((function(e) {
+                            var o = fo(e, 2),
+                                r = o[0],
+                                i = o[1];
+                            "#" !== i && [].concat(i).forEach((function(e) {
+                                var o;
+                                fo(null !== (o = n.revivers[e]) && void 0 !== o ? o : [null, {}], 2)[1].plain && (t.push({
+                                    keypath: r,
+                                    type: e
+                                }), delete a[r])
+                            }))
+                        })), t.length) return t.sort(jo), t.reduce((function t(n, o) {
+                        var r = o.keypath,
+                            i = o.type;
+                        if (ko(n)) return n.then((function(e) {
+                            return t(e, {
+                                keypath: r,
+                                type: i
+                            })
+                        }));
+                        var a = xo(e, r);
+                        if (So(a = l(i, a), wo)) return a.then((function(t) {
+                            var n = Oo(e, r, t);
+                            n === t && (e = n)
+                        }));
+                        var s = Oo(e, r, a);
+                        s === a && (e = s)
+                    }), void 0)
+                }();
+                return So(f, wo) ? m = f.then((function() {
+                    return e
+                })) : (m = function e(t, n, o, r, i) {
+                    if (!d || "$types" !== t) {
+                        var c = a[t],
+                            p = No(n);
+                        if (p || Eo(n)) {
+                            var m = p ? new Array(n.length) : {};
+                            for (Lo(n).forEach((function(r) {
+                                    var i = e(t + (t ? "." : "") + Po(r), n[r], null != o ? o : m, m, r),
+                                        a = function(e) {
+                                            return So(e, Go) ? m[r] = void 0 : void 0 !== e && (m[r] = e), e
+                                        };
+                                    So(i, wo) ? u.push(i.then((function(e) {
+                                        return a(e)
+                                    }))) : a(i)
+                                })), n = m; s.length;) {
+                                var f = fo(s[0], 4),
+                                    g = f[0],
+                                    h = f[1],
+                                    y = f[2],
+                                    w = f[3],
+                                    v = xo(g, h);
+                                if (void 0 === v) break;
+                                y[w] = v, s.splice(0, 1)
+                            }
+                        }
+                        if (!c) return n;
+                        if ("#" === c) {
+                            var b = xo(o, n.slice(1));
+                            return void 0 === b && s.push([o, n.slice(1), r, i]), b
+                        }
+                        return [].concat(c).reduce((function e(t, n) {
+                            if (So(t, wo)) return t.then((function(t) {
+                                return e(t, n)
+                            }));
+                            if ("string" != typeof n) throw new TypeError("Bad type JSON");
+                            return l(n, t)
+                        }), n)
+                    }
+                }("", e, null), u.length && (m = wo.resolve(m).then((function(e) {
+                    return wo.all([e].concat(u))
+                })).then((function(e) {
+                    return fo(e, 1)[0]
+                })))), ko(m) ? r && o.throwOnBadSyncType ? function() {
+                    throw new TypeError("Sync method requested but async result obtained")
+                }() : So(m, wo) ? m.p.then(p) : m : !r && o.throwOnBadSyncType ? function() {
+                    throw new TypeError("Async method requested but sync result obtained")
+                }() : r ? p(m) : Promise.resolve(p(m))
+            }
+        }, {
+            key: "reviveSync",
+            value: function(e, t) {
+                return this.revive(e, mo(mo({
+                    throwOnBadSyncType: !0
+                }, t), {}, {
+                    sync: !0
+                }))
+            }
+        }, {
+            key: "reviveAsync",
+            value: function(e, t) {
+                return this.revive(e, mo(mo({
+                    throwOnBadSyncType: !0
+                }, t), {}, {
+                    sync: !1
+                }))
+            }
+        }, {
+            key: "register",
+            value: function(e, t) {
+                var n = this,
+                    o = null != t ? t : {},
+                    r = function(e) {
+                        No(e) ? e.forEach((function(e) {
+                            r(e)
+                        })) : Lo(e).forEach((function(t) {
+                            var r;
+                            if ("#" === t) throw new TypeError("# cannot be used as a type name as it is reserved for cyclic objects");
+                            if (Fo.includes(t)) throw new TypeError("Plain JSON object types are reserved as type names");
+                            var i = e[t],
+                                a = i && "function" != typeof i && !Array.isArray(i) && i.testPlainObjects ? n.plainObjectReplacers : n.nonplainObjectReplacers,
+                                s = a.filter((function(e) {
+                                    return e.type === t
+                                }));
+                            if (s.length && (a.splice(a.indexOf(s[0]), 1), delete n.revivers[t], delete n.types[t]), "function" == typeof i) {
+                                var c = i;
+                                i = {
+                                    test: function(e) {
+                                        return e && e.constructor === c
+                                    },
+                                    replace: function(e) {
+                                        return mo({}, e)
+                                    },
+                                    revive: function(e) {
+                                        return Object.assign(Object.create(c.prototype), e)
+                                    }
+                                }
+                            } else if (No(i)) {
+                                var d = fo(i, 3);
+                                i = {
+                                    test: d[0],
+                                    replace: d[1],
+                                    revive: d[2]
+                                }
+                            }
+                            if (null !== (r = i) && void 0 !== r && r.test) {
+                                var l = {
+                                    type: t,
+                                    test: i.test.bind(i)
+                                };
+                                i.replace && (l.replace = i.replace.bind(i)), i.replaceAsync && (l.replaceAsync = i.replaceAsync.bind(i));
+                                var u = "number" == typeof o.fallback ? o.fallback : o.fallback ? 0 : Number.POSITIVE_INFINITY;
+                                if (i.testPlainObjects ? n.plainObjectReplacers.splice(u, 0, l) : n.nonplainObjectReplacers.splice(u, 0, l), i.revive || i.reviveAsync) {
+                                    var p = {};
+                                    i.revive && (p.revive = i.revive.bind(i)), i.reviveAsync && (p.reviveAsync = i.reviveAsync.bind(i)), n.revivers[t] = [p, {
+                                        plain: i.testPlainObjects
+                                    }]
+                                }
+                                n.types[t] = i
+                            }
+                        }))
+                    };
+                return [].concat(e).forEach((function(e) {
+                    r(e)
+                })), this
+            }
+        }]),
+        Go = lo((function e() {
+            co(this, e)
+        }));
+    Go.__typeson__type__ = "TypesonUndefined";
+    for (var Fo = ["null", "boolean", "number", "string", "array", "object"], Uo = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", Ko = new Uint8Array(256), zo = 0; zo < 64; zo++) Ko[Uo.codePointAt(zo)] = zo;
+    var Ho = function(e, t, n) {
+            null == n && (n = e.byteLength);
+            for (var o = new Uint8Array(e, 0, n), r = o.length, i = "", a = 0; a < r; a += 3) i += Uo[o[a] >> 2], i += Uo[(3 & o[a]) << 4 | o[a + 1] >> 4], i += Uo[(15 & o[a + 1]) << 2 | o[a + 2] >> 6], i += Uo[63 & o[a + 2]];
+            return r % 3 == 2 ? i = i.slice(0, -1) + "=" : r % 3 == 1 && (i = i.slice(0, -2) + "=="), i
+        },
+        qo = function(e, t) {
+            var n = e.length;
+            if (n % 4) throw new Error("Bad base64 length: not divisible by four");
+            var o, r, i, a, s = .75 * e.length,
+                c = 0;
+            "=" === e[e.length - 1] && (s--, "=" === e[e.length - 2] && s--);
+            for (var d = new ArrayBuffer(s, t), l = new Uint8Array(d), u = 0; u < n; u += 4) o = Ko[e.codePointAt(u)], r = Ko[e.codePointAt(u + 1)], i = Ko[e.codePointAt(u + 2)], a = Ko[e.codePointAt(u + 3)], l[c++] = o << 2 | r >> 4, l[c++] = (15 & r) << 4 | i >> 2, l[c++] = (3 & i) << 6 | 63 & a;
+            return d
+        };
+    const Yo = {
+            arraybuffer: {
+                test: e => "ArrayBuffer" === Ao(e),
+                replace(e, t) {
+                    t.buffers || (t.buffers = []);
+                    const n = t.buffers.indexOf(e);
+                    return -1 !== n ? {
+                        index: n
+                    } : (t.buffers.push(e), {
+                        s: Ho(e),
+                        maxByteLength: e.maxByteLength,
+                        resizable: e.resizable
+                    })
+                },
+                revive(e, t) {
+                    if (t.buffers || (t.buffers = []), Object.hasOwn(e, "index")) return t.buffers[e.index];
+                    const n = qo(e.s, e.resizable ? {
+                        maxByteLength: e.maxByteLength
+                    } : void 0);
+                    return t.buffers.push(n), n
+                }
+            }
+        },
+        Wo = {
+            bigintObject: {
+                test: e => "object" == typeof e && So(e, BigInt),
+                replace: String,
+                revive: e => new Object(BigInt(e))
+            }
+        },
+        $o = {
+            bigint: {
+                test: e => "bigint" == typeof e,
+                replace: String,
+                revive: e => BigInt(e)
+            }
+        };
+
+    function Jo(e) {
+        return new Uint8Array(e).reduce(((e, t) => e + String.fromCodePoint(t)), "")
+    }
+
+    function Qo(e) {
+        const t = new Uint8Array(e.length);
+        for (let n = 0; n < e.length; n++) t[n] = e.charCodeAt(n);
+        return t.buffer
+    }
+    const Zo = {
+        blob: {
+            test: e => "Blob" === Ao(e),
+            replace(e) {
+                const t = new XMLHttpRequest;
+                if (t.overrideMimeType("text/plain; charset=x-user-defined"), t.open("GET", URL.createObjectURL(e), !1), t.send(), 200 !== t.status && 0 !== t.status) throw new Error("Bad Blob access: " + t.status);
+                return {
+                    type: e.type,
+                    stringContents: t.responseText
+                }
+            },
+            revive(e) {
+                const {
+                    type: t,
+                    stringContents: n
+                } = e;
+                return new Blob([Qo(n)], {
+                    type: t
+                })
+            },
+            replaceAsync: e => new wo(((t, n) => {
+                const o = new FileReader;
+                o.addEventListener("load", (() => {
+                    t({
+                        type: e.type,
+                        stringContents: Jo(o.result)
+                    })
+                })), o.addEventListener("error", (() => {
+                    n(o.error)
+                })), o.readAsArrayBuffer(e)
+            }))
+        }
+    };
+    const Xo = {
+            cryptokey: {
+                test: e => "CryptoKey" === Ao(e) && e.extractable,
+                replaceAsync: e => new wo((async (t, n) => {
+                    let o;
+                    try {
+                        o = await crypto.subtle.exportKey("jwk", e)
+                    } catch (t) {
+                        return void n(t)
+                    }
+                    t({
+                        jwk: o,
+                        algorithm: e.algorithm,
+                        usages: e.usages
+                    })
+                })),
+                revive(e) {
+                    const {
+                        jwk: t,
+                        algorithm: n,
+                        usages: o
+                    } = e;
+                    return crypto.subtle.importKey("jwk", t, n, !0, o)
+                }
+            }
+        },
+        er = {
+            dataview: {
+                test: e => "DataView" === Ao(e),
+                replace({
+                    buffer: e,
+                    byteOffset: t,
+                    byteLength: n
+                }, o) {
+                    o.buffers || (o.buffers = []);
+                    const r = o.buffers.indexOf(e);
+                    return -1 !== r ? {
+                        index: r,
+                        byteOffset: t,
+                        byteLength: n
+                    } : (o.buffers.push(e), {
+                        encoded: Ho(e),
+                        maxByteLength: e.maxByteLength,
+                        resizable: e.resizable,
+                        byteOffset: t,
+                        byteLength: n
+                    })
+                },
+                revive(e, t) {
+                    t.buffers || (t.buffers = []);
+                    const {
+                        byteOffset: n,
+                        byteLength: o,
+                        encoded: r,
+                        index: i,
+                        maxByteLength: a,
+                        resizable: s
+                    } = e;
+                    let c;
+                    return "index" in e ? c = t.buffers[i] : (c = qo(r, s ? {
+                        maxByteLength: a
+                    } : a), t.buffers.push(c)), new DataView(c, n, o)
+                }
+            }
+        },
+        tr = {
+            date: {
+                test: e => "Date" === Ao(e),
+                replace(e) {
+                    const t = e.getTime();
+                    return Number.isNaN(t) ? "NaN" : t
+                },
+                revive: e => "NaN" === e ? new Date(Number.NaN) : new Date(e)
+            }
+        },
+        nr = {
+            domexception: {
+                test: e => "DOMException" === Ao(e),
+                replace: e => ({
+                    name: e.name,
+                    message: e.message
+                }),
+                revive: ({
+                    message: e,
+                    name: t
+                }) => new DOMException(e, t)
+            }
+        },
+        or = {};
+
+    function rr(e) {
+        or[e.name.toLowerCase()] = {
+            test: t => Ao(t) === e.name,
+            replace: e => e.is2D ? {
+                a: e.a,
+                b: e.b,
+                c: e.c,
+                d: e.d,
+                e: e.e,
+                f: e.f
+            } : {
+                m11: e.m11,
+                m12: e.m12,
+                m13: e.m13,
+                m14: e.m14,
+                m21: e.m21,
+                m22: e.m22,
+                m23: e.m23,
+                m24: e.m24,
+                m31: e.m31,
+                m32: e.m32,
+                m33: e.m33,
+                m34: e.m34,
+                m41: e.m41,
+                m42: e.m42,
+                m43: e.m43,
+                m44: e.m44
+            },
+            revive: t => Object.hasOwn(t, "a") ? new e([t.a, t.b, t.c, t.d, t.e, t.f]) : new e([t.m11, t.m12, t.m13, t.m14, t.m21, t.m22, t.m23, t.m24, t.m31, t.m32, t.m33, t.m34, t.m41, t.m42, t.m43, t.m44])
+        }
+    }
+    "undefined" != typeof DOMMatrix && rr(DOMMatrix), "undefined" != typeof DOMMatrixReadOnly && rr(DOMMatrixReadOnly);
+    const ir = {};
+
+    function ar(e) {
+        ir[e.name.toLowerCase()] = {
+            test: t => Ao(t) === e.name,
+            replace: e => ({
+                x: e.x,
+                y: e.y,
+                z: e.z,
+                w: e.w
+            }),
+            revive: ({
+                x: t,
+                y: n,
+                z: o,
+                w: r
+            }) => new e(t, n, o, r)
+        }
+    }
+    "undefined" != typeof DOMPoint && ar(DOMPoint), "undefined" != typeof DOMPointReadOnly && ar(DOMPointReadOnly);
+    const sr = {
+            domquad: {
+                test: e => "DOMQuad" === Ao(e),
+                replace: e => ({
+                    p1: e.p1,
+                    p2: e.p2,
+                    p3: e.p3,
+                    p4: e.p4
+                }),
+                revive: ({
+                    p1: e,
+                    p2: t,
+                    p3: n,
+                    p4: o
+                }) => new DOMQuad(e, t, n, o)
+            }
+        },
+        cr = {};
+
+    function dr(e) {
+        cr[e.name.toLowerCase()] = {
+            test: t => Ao(t) === e.name,
+            replace: e => ({
+                x: e.x,
+                y: e.y,
+                width: e.width,
+                height: e.height
+            }),
+            revive: ({
+                x: t,
+                y: n,
+                width: o,
+                height: r
+            }) => new e(t, n, o, r)
+        }
+    }
+    "undefined" != typeof DOMRect && dr(DOMRect), "undefined" != typeof DOMRectReadOnly && dr(DOMRectReadOnly);
+    const lr = {
+            error: {
+                test: e => "Error" === Ao(e),
+                replace: ({
+                    name: e,
+                    message: t,
+                    cause: n,
+                    stack: o,
+                    fileName: r,
+                    lineNumber: i,
+                    columnNumber: a
+                }) => ({
+                    name: e,
+                    message: t,
+                    cause: n,
+                    stack: o,
+                    fileName: r,
+                    lineNumber: i,
+                    columnNumber: a
+                }),
+                revive(e) {
+                    const t = new Error(e.message);
+                    return t.name = e.name, t.cause = e.cause, t.stack = e.stack, t.fileName = e.fileName, t.lineNumber = e.lineNumber, t.columnNumber = e.columnNumber, t
+                }
+            }
+        },
+        ur = {};
+
+    function pr(e) {
+        ur[e.name.toLowerCase()] = {
+            test: t => So(t, e),
+            replace: ({
+                name: e,
+                message: t,
+                cause: n,
+                stack: o,
+                fileName: r,
+                lineNumber: i,
+                columnNumber: a,
+                errors: s
+            }) => ({
+                name: e,
+                message: t,
+                cause: n,
+                stack: o,
+                fileName: r,
+                lineNumber: i,
+                columnNumber: a,
+                errors: s
+            }),
+            revive(t) {
+                const n = "undefined" != typeof AggregateError && e === AggregateError ? new e(t.errors, t.message) : new e(t.message);
+                return n.name = t.name, n.cause = t.cause, n.stack = t.stack, n.fileName = t.fileName, n.lineNumber = t.lineNumber, n.columnNumber = t.columnNumber, n
+            }
+        }
+    } [TypeError, RangeError, SyntaxError, ReferenceError, EvalError, URIError].forEach((e => pr(e))), "undefined" != typeof AggregateError && pr(AggregateError), "function" == typeof InternalError && pr(InternalError);
+    const mr = {
+            file: {
+                test: e => "File" === Ao(e),
+                replace(e) {
+                    const t = new XMLHttpRequest;
+                    if (t.overrideMimeType("text/plain; charset=x-user-defined"), t.open("GET", URL.createObjectURL(e), !1), t.send(), 200 !== t.status && 0 !== t.status) throw new Error("Bad File access: " + t.status);
+                    return {
+                        type: e.type,
+                        stringContents: t.responseText,
+                        name: e.name,
+                        lastModified: e.lastModified
+                    }
+                },
+                revive: ({
+                    name: e,
+                    type: t,
+                    stringContents: n,
+                    lastModified: o
+                }) => new File([Qo(n)], e, {
+                    type: t,
+                    lastModified: o
+                }),
+                replaceAsync: e => new wo((function(t, n) {
+                    const o = new FileReader;
+                    o.addEventListener("load", (function() {
+                        t({
+                            type: e.type,
+                            stringContents: Jo(o.result),
+                            name: e.name,
+                            lastModified: e.lastModified
+                        })
+                    })), o.addEventListener("error", (function() {
+                        n(o.error)
+                    })), o.readAsArrayBuffer(e)
+                }))
+            }
+        },
+        fr = {
+            file: mr.file,
+            filelist: {
+                test: e => "FileList" === Ao(e),
+                replace(e) {
+                    const t = [];
+                    for (let n = 0; n < e.length; n++) t[n] = e.item(n);
+                    return t
+                },
+                revive(e) {
+                    class t {
+                        constructor() {
+                            this._files = arguments[0], this.length = this._files.length
+                        }
+                        item(e) {
+                            return this._files[e]
+                        }
+                        get[Symbol.toStringTag]() {
+                            return "FileList"
+                        }
+                    }
+                    return new t(e)
+                }
+            }
+        },
+        gr = {
+            imagebitmap: {
+                test: e => "ImageBitmap" === Ao(e) || e && e.dataset && "ImageBitmap" === e.dataset.toStringTag,
+                replace(e) {
+                    const t = document.createElement("canvas");
+                    return t.getContext("2d").drawImage(e, 0, 0), {
+                        width: e.width,
+                        height: e.height,
+                        dataURL: t.toDataURL()
+                    }
+                },
+                revive(e) {
+                    const t = "undefined" == typeof OffscreenCanvas ? document.createElement("canvas") : new OffscreenCanvas(e.width, e.height),
+                        n = t.getContext("2d"),
+                        o = document.createElement("img");
+                    return o.addEventListener("load", (function() {
+                        n.drawImage(o, 0, 0)
+                    })), o.src = e.dataURL, "undefined" == typeof OffscreenCanvas ? t : t.transferToImageBitmap()
+                },
+                reviveAsync(e) {
+                    const t = document.createElement("canvas"),
+                        n = t.getContext("2d"),
+                        o = document.createElement("img");
+                    return o.addEventListener("load", (function() {
+                        n.drawImage(o, 0, 0)
+                    })), o.src = e.dataURL, new wo((async (e, n) => {
+                        try {
+                            e(await createImageBitmap(t))
+                        } catch (e) {
+                            n(e)
+                        }
+                    }))
+                }
+            }
+        },
+        hr = {
+            imagedata: {
+                test: e => "ImageData" === Ao(e),
+                replace: e => ({
+                    array: [...e.data],
+                    width: e.width,
+                    height: e.height
+                }),
+                revive: e => new ImageData(new Uint8ClampedArray(e.array), e.width, e.height)
+            }
+        },
+        yr = {
+            infinity: {
+                test: e => e === Number.POSITIVE_INFINITY,
+                replace: () => "Infinity",
+                revive: () => Number.POSITIVE_INFINITY
+            }
+        },
+        wr = {
+            test: e => So(e, Intl.Collator),
+            replace: e => e.resolvedOptions(),
+            revive: e => new Intl.Collator(e.locale, e)
+        },
+        vr = {
+            IntlCollator: wr,
+            IntlDateTimeFormat: {
+                test: e => So(e, Intl.DateTimeFormat),
+                replace: e => e.resolvedOptions(),
+                revive: e => new Intl.DateTimeFormat(e.locale, e)
+            },
+            IntlNumberFormat: {
+                test: e => So(e, Intl.NumberFormat),
+                replace: e => e.resolvedOptions(),
+                revive: e => new Intl.NumberFormat(e.locale, e)
+            }
+        },
+        br = {
+            map: {
+                test: e => "Map" === Ao(e),
+                replace: e => [...e.entries()],
+                revive: e => new Map(e)
+            }
+        },
+        kr = {
+            nan: {
+                test: e => Number.isNaN(e),
+                replace: () => "NaN",
+                revive: () => Number.NaN
+            }
+        },
+        Ar = {
+            negativeInfinity: {
+                test: e => e === Number.NEGATIVE_INFINITY,
+                replace: () => "-Infinity",
+                revive: () => Number.NEGATIVE_INFINITY
+            }
+        },
+        Sr = {
+            negativeZero: {
+                test: e => Object.is(e, -0),
+                replace: () => 0,
+                revive: () => -0
+            }
+        },
+        Er = {
+            StringObject: {
+                test: e => "String" === Ao(e) && "object" == typeof e,
+                replace: String,
+                revive: e => new String(e)
+            },
+            BooleanObject: {
+                test: e => "Boolean" === Ao(e) && "object" == typeof e,
+                replace: e => e.valueOf(),
+                revive: e => new Boolean(e)
+            },
+            NumberObject: {
+                test: e => "Number" === Ao(e) && "object" == typeof e,
+                replace: Number,
+                revive: e => new Number(e)
+            }
+        },
+        Ir = {
+            regexp: {
+                test: e => "RegExp" === Ao(e),
+                replace: e => ({
+                    source: e.source,
+                    flags: (e.global ? "g" : "") + (e.ignoreCase ? "i" : "") + (e.multiline ? "m" : "") + (e.sticky ? "y" : "") + (e.unicode ? "u" : "") + (e.unicodeSets ? "v" : "") + (e.hasIndices ? "d" : "") + (e.dotAll ? "s" : "")
+                }),
+                revive: ({
+                    source: e,
+                    flags: t
+                }) => new RegExp(e, t)
+            }
+        },
+        _r = {
+            set: {
+                test: e => "Set" === Ao(e),
+                replace: e => [...e.values()],
+                revive: e => new Set(e)
+            }
+        },
+        Pr = {};
+    "function" == typeof Int8Array && [Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array, ..."function" == typeof BigInt64Array ? [BigInt64Array, BigUint64Array] : []].forEach((e => function(e) {
+        const t = e.name;
+        Pr[t.toLowerCase()] = {
+            test: e => Ao(e) === t,
+            replace: e => (0 === e.byteOffset && e.byteLength === e.buffer.byteLength ? e : e.slice(0)).buffer,
+            revive: t => "ArrayBuffer" === Ao(t) ? new e(t) : t
+        }
+    }(e)));
+    const Tr = {};
+    "function" == typeof Int8Array && [Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array, ..."function" == typeof BigInt64Array ? [BigInt64Array, BigUint64Array] : []].forEach((e => function(e) {
+        const t = e.name;
+        Tr[t.toLowerCase()] = {
+            test: e => Ao(e) === t,
+            replace({
+                buffer: e,
+                byteOffset: t,
+                length: n
+            }, o) {
+                o.buffers || (o.buffers = []);
+                const r = o.buffers.indexOf(e);
+                return -1 !== r ? {
+                    index: r,
+                    byteOffset: t,
+                    length: n
+                } : (o.buffers.push(e), {
+                    maxByteLength: e.maxByteLength,
+                    resizable: e.resizable,
+                    encoded: Ho(e),
+                    byteOffset: t,
+                    length: n
+                })
+            },
+            revive(t, n) {
+                n.buffers || (n.buffers = []);
+                const {
+                    byteOffset: o,
+                    length: r,
+                    encoded: i,
+                    index: a,
+                    maxByteLength: s,
+                    resizable: c
+                } = t;
+                let d;
+                return "index" in t ? d = n.buffers[a] : (d = qo(i, c ? {
+                    maxByteLength: s
+                } : void 0), n.buffers.push(d)), new e(d, o, r)
+            }
+        }
+    }(e)));
+    const xr = {
+            undef: {
+                test: (e, t) => void 0 === e && (t.ownKeys || !("ownKeys" in t)),
+                replace: () => 0,
+                revive: () => new Go
+            }
+        },
+        Or = {
+            userObject: {
+                test: e => Io(e),
+                replace: e => ({
+                    ...e
+                }),
+                revive: e => e
+            }
+        },
+        Cr = [{
+            arrayNonindexKeys: {
+                testPlainObjects: !0,
+                test: (e, t) => !!Array.isArray(e) && (Object.keys(e).some((e => String(Number.parseInt(e)) !== e)) && (t.iterateIn = "object", t.addLength = !0), !0),
+                replace: (e, t) => (t.iterateUnsetNumeric = !0, e),
+                revive(e) {
+                    if (Array.isArray(e)) return e;
+                    const t = [];
+                    return Object.entries(e).forEach((([e, n]) => {
+                        t[e] = n
+                    })), t
+                }
+            }
+        }, {
+            sparseUndefined: {
+                test: (e, t) => void 0 === e && !1 === t.ownKeys,
+                replace: () => 0,
+                revive() {}
+            }
+        }],
+        Dr = [kr, yr, Ar, Sr],
+        Lr = ([xr, Cr, Er, Dr, tr, lr, ur, Ir].concat("function" == typeof Map ? br : [], "function" == typeof Set ? _r : [], "function" == typeof ArrayBuffer ? Yo : [], "function" == typeof Uint8Array ? Tr : [], "function" == typeof DataView ? er : [], "undefined" != typeof Intl ? vr : [], "undefined" != typeof BigInt ? [$o, Wo] : []), [Or, xr, Cr, Er, Dr, tr, Ir, hr, gr, mr, fr, Zo, lr, ur].concat("function" == typeof Map ? br : [], "function" == typeof Set ? _r : [], "function" == typeof ArrayBuffer ? Yo : [], "function" == typeof Uint8Array ? Tr : [], "function" == typeof DataView ? er : [], "undefined" != typeof crypto ? Xo : [], "undefined" != typeof BigInt ? [$o, Wo] : [], "undefined" != typeof DOMException ? nr : [], "undefined" != typeof DOMRect ? cr : [], "undefined" != typeof DOMPoint ? ir : [], "undefined" != typeof DOMQuad ? sr : [], "undefined" != typeof DOMMatrix ? or : []));
+    Lr.concat({
+        checkDataCloneException: {
+            test(e) {
+                const t = {}.toString.call(e).slice(8, -1);
+                if (["symbol", "function"].includes(typeof e) || ["Arguments", "Module", "Promise", "WeakMap", "WeakSet", "Event", "MessageChannel"].includes(t) || e && "object" == typeof e && "number" == typeof e.nodeType && "function" == typeof e.insertBefore) throw new DOMException("The object cannot be cloned.", "DataCloneError");
+                return !1
+            }
+        }
+    });
+
+    function Mr(e, t = 300, n = 1e3) {
+        let o, r;
+        return function(...i) {
+            const a = this,
+                s = () => {
+                    clearTimeout(o), clearTimeout(r), o = void 0, r = void 0, e.apply(a, i)
+                };
+            clearTimeout(o), o = setTimeout(s, t), r || (r = setTimeout(s, n))
+        }
+    }
+
+    function Nr(e) {
+        if (!document.body || !document.body.appendChild) return void document.addEventListener("DOMContentLoaded", (() => {
+            Nr(e)
+        }));
+        const t = document.createElement("iframe");
+        t.style.display = "none", document.body.appendChild(t), t.contentWindow && (t.contentWindow.document.open(), t.contentWindow.document.write(`<script>${e}<\/script>`), t.contentWindow.document.close())
+    }
+
+    function Br(e, t, n, o, r, i) {
+        return Fr(function(e, t) {
+            return e << t | e >>> 32 - t
+        }(Fr(Fr(t, e), Fr(o, i)), r), n)
+    }
+
+    function Rr(e, t, n, o, r, i, a) {
+        return Br(t & n | ~t & o, e, t, r, i, a)
+    }
+
+    function jr(e, t, n, o, r, i, a) {
+        return Br(t & o | n & ~o, e, t, r, i, a)
+    }
+
+    function Vr(e, t, n, o, r, i, a) {
+        return Br(t ^ n ^ o, e, t, r, i, a)
+    }
+
+    function Gr(e, t, n, o, r, i, a) {
+        return Br(n ^ (t | ~o), e, t, r, i, a)
+    }
+
+    function Fr(e, t) {
+        const n = (65535 & e) + (65535 & t);
+        return (e >> 16) + (t >> 16) + (n >> 16) << 16 | 65535 & n
+    }
+    let Ur, Kr = "";
+    try {
+        const e = window.location.href.split("?")[0].replace(/\/[^/]*$/, "");
+        Kr = function(e) {
+            const t = function(e) {
+                for (var t, n = "0123456789ABCDEF", o = "", r = 0; r < e.length; r++) t = e.charCodeAt(r), o += n.charAt(t >>> 4 & 15) + n.charAt(15 & t);
+                return o
+            }(function(e) {
+                for (var t = "", n = 0; n < 32 * e.length; n += 8) t += String.fromCharCode(e[n >> 5] >>> n % 32 & 255);
+                return t
+            }(function(e, t) {
+                e[t >> 5] |= 128 << t % 32, e[14 + (t + 64 >>> 9 << 4)] = t;
+                for (var n = 1732584193, o = -271733879, r = -1732584194, i = 271733878, a = 0; a < e.length; a += 16) {
+                    const t = n,
+                        s = o,
+                        c = r,
+                        d = i;
+                    o = Gr(o = Gr(o = Gr(o = Gr(o = Vr(o = Vr(o = Vr(o = Vr(o = jr(o = jr(o = jr(o = jr(o = Rr(o = Rr(o = Rr(o = Rr(o, r = Rr(r, i = Rr(i, n = Rr(n, o, r, i, e[a + 0], 7, -680876936), o, r, e[a + 1], 12, -389564586), n, o, e[a + 2], 17, 606105819), i, n, e[a + 3], 22, -1044525330), r = Rr(r, i = Rr(i, n = Rr(n, o, r, i, e[a + 4], 7, -176418897), o, r, e[a + 5], 12, 1200080426), n, o, e[a + 6], 17, -1473231341), i, n, e[a + 7], 22, -45705983), r = Rr(r, i = Rr(i, n = Rr(n, o, r, i, e[a + 8], 7, 1770035416), o, r, e[a + 9], 12, -1958414417), n, o, e[a + 10], 17, -42063), i, n, e[a + 11], 22, -1990404162), r = Rr(r, i = Rr(i, n = Rr(n, o, r, i, e[a + 12], 7, 1804603682), o, r, e[a + 13], 12, -40341101), n, o, e[a + 14], 17, -1502002290), i, n, e[a + 15], 22, 1236535329), r = jr(r, i = jr(i, n = jr(n, o, r, i, e[a + 1], 5, -165796510), o, r, e[a + 6], 9, -1069501632), n, o, e[a + 11], 14, 643717713), i, n, e[a + 0], 20, -373897302), r = jr(r, i = jr(i, n = jr(n, o, r, i, e[a + 5], 5, -701558691), o, r, e[a + 10], 9, 38016083), n, o, e[a + 15], 14, -660478335), i, n, e[a + 4], 20, -405537848), r = jr(r, i = jr(i, n = jr(n, o, r, i, e[a + 9], 5, 568446438), o, r, e[a + 14], 9, -1019803690), n, o, e[a + 3], 14, -187363961), i, n, e[a + 8], 20, 1163531501), r = jr(r, i = jr(i, n = jr(n, o, r, i, e[a + 13], 5, -1444681467), o, r, e[a + 2], 9, -51403784), n, o, e[a + 7], 14, 1735328473), i, n, e[a + 12], 20, -1926607734), r = Vr(r, i = Vr(i, n = Vr(n, o, r, i, e[a + 5], 4, -378558), o, r, e[a + 8], 11, -2022574463), n, o, e[a + 11], 16, 1839030562), i, n, e[a + 14], 23, -35309556), r = Vr(r, i = Vr(i, n = Vr(n, o, r, i, e[a + 1], 4, -1530992060), o, r, e[a + 4], 11, 1272893353), n, o, e[a + 7], 16, -155497632), i, n, e[a + 10], 23, -1094730640), r = Vr(r, i = Vr(i, n = Vr(n, o, r, i, e[a + 13], 4, 681279174), o, r, e[a + 0], 11, -358537222), n, o, e[a + 3], 16, -722521979), i, n, e[a + 6], 23, 76029189), r = Vr(r, i = Vr(i, n = Vr(n, o, r, i, e[a + 9], 4, -640364487), o, r, e[a + 12], 11, -421815835), n, o, e[a + 15], 16, 530742520), i, n, e[a + 2], 23, -995338651), r = Gr(r, i = Gr(i, n = Gr(n, o, r, i, e[a + 0], 6, -198630844), o, r, e[a + 7], 10, 1126891415), n, o, e[a + 14], 15, -1416354905), i, n, e[a + 5], 21, -57434055), r = Gr(r, i = Gr(i, n = Gr(n, o, r, i, e[a + 12], 6, 1700485571), o, r, e[a + 3], 10, -1894986606), n, o, e[a + 10], 15, -1051523), i, n, e[a + 1], 21, -2054922799), r = Gr(r, i = Gr(i, n = Gr(n, o, r, i, e[a + 8], 6, 1873313359), o, r, e[a + 15], 10, -30611744), n, o, e[a + 6], 15, -1560198380), i, n, e[a + 13], 21, 1309151649), r = Gr(r, i = Gr(i, n = Gr(n, o, r, i, e[a + 4], 6, -145523070), o, r, e[a + 11], 10, -1120210379), n, o, e[a + 2], 15, 718787259), i, n, e[a + 9], 21, -343485551), n = Fr(n, t), o = Fr(o, s), r = Fr(r, c), i = Fr(i, d)
+                }
+                return Array(n, o, r, i)
+            }(function(e) {
+                for (var t = Array(e.length >> 2), n = 0; n < t.length; n++) t[n] = 0;
+                for (n = 0; n < 8 * e.length; n += 8) t[n >> 5] |= (255 & e.charCodeAt(n / 8)) << n % 32;
+                return t
+            }(e), 8 * e.length)));
+            return t.toLowerCase()
+        }(e), Ur = localStorage.getItem("savegame_idbfs_hash")
+    } catch {}
+
+    function zr(e) {
+        if (!Ur) return e;
+        try {
+            return e.replace(Kr, Ur)
+        } catch {
+            return e
+        }
+    }
+    const Hr = 5e3,
+        qr = 15e3,
+        Yr = "poki_gs_state_token",
+        Wr = "poki_playtime",
+        $r = [Yr, Wr],
+        Jr = [];
+    let Qr = performance.now();
+    async function Zr() {
+        if (!("databases" in indexedDB)) return console.warn("%cPOKI_SAVEGAME:%c indexedDB.databases() is not supported in this browser.", "font-weight: bold", ""), [];
+        const e = await indexedDB.databases();
+        0 === e.length && (console.info("%cPOKI_SAVEGAME:%c No databases found, using IDBDatabaseInfos", "font-weight: bold", "", Jr.map((e => e.name))), e.push(...Jr));
+        const t = [];
+        e.forEach((async e => {
+            var n;
+            (n = e.name) && "UnityCache" !== n && t.push(function(e, t) {
+                return new Promise(((n, o) => {
+                    if (!e) return void o(new Error("Cannot export database without a name"));
+                    const r = indexedDB.open(e, t);
+                    r.onsuccess = t => {
+                        const o = t.target.result,
+                            r = Array.from(o.objectStoreNames),
+                            i = {
+                                name: e,
+                                version: o.version,
+                                objectStores: []
+                            };
+                        let a = r.length;
+                        if (0 === a) return o.close(), void n(i);
+                        r.forEach((t => {
+                            const r = o.transaction(t, "readonly").objectStore(t),
+                                s = Array.from(r.indexNames),
+                                c = [],
+                                d = {
+                                    name: t,
+                                    keyPath: r.keyPath,
+                                    autoIncrement: r.autoIncrement,
+                                    indexes: [],
+                                    data: []
+                                };
+                            s.forEach((e => {
+                                const t = r.index(e),
+                                    n = {
+                                        name: e,
+                                        keyPath: t.keyPath,
+                                        unique: t.unique,
+                                        multiEntry: t.multiEntry
+                                    };
+                                d.indexes.push(n)
+                            }));
+                            const l = r.openCursor();
+                            l.onerror = () => {
+                                console.warn(`%cPOKI_SAVEGAME:%c error fetching data from object store ${t}`, "font-weight: bold", ""), a--, 0 === a && (o.close(), n(i))
+                            }, l.onsuccess = r => {
+                                const s = r.target;
+                                if (!s) return;
+                                const l = s.result;
+                                if (null === l) return d.data = c, i.objectStores.push(d), a--, void(0 === a && (o.close(), n(i)));
+                                ! function(e, t, n) {
+                                    return "string" == typeof n && !("/data" !== e || "FILE_DATA" !== t || !n.endsWith(".zip") && !n.includes("liveupdate.arc"))
+                                }(e, t, l.primaryKey) ? c.push({
+                                    k: zr(l.primaryKey),
+                                    v: l.value
+                                }): console.info(`%cPOKI_SAVEGAME:%c Skipping row ${l.primaryKey}`, "font-weight: bold", ""), l.continue()
+                            }
+                        }))
+                    }, r.onerror = e => {
+                        console.warn("%cPOKI_SAVEGAME:%c error opening database", "font-weight: bold", "", e.target.error), o(e.target.error)
+                    }
+                }))
+            }(e.name || "", e.version))
+        }));
+        const n = await Promise.allSettled(t);
+        return n?.map((e => "fulfilled" === e.status ? e.value : null))
+    }
+
+    function Xr() {
+        console.info("%cPOKI_SAVEGAME:%c setupCloudSaveExports", "font-weight: bold", "");
+        const e = (new Vo).register([Lr]),
+            t = () => {
+                const t = performance.now(),
+                    n = Math.ceil((t - Qr) / 1e3);
+                let o = 0;
+                try {
+                    o = Number.parseInt(localStorage.getItem(Wr) || "0", 10)
+                } catch (e) {
+                    q("error getting current playtime", e)
+                }
+                const r = o + n;
+                try {
+                    localStorage.setItem(Wr, r.toString())
+                } catch (e) {
+                    q("error setting current playtime", e)
+                }
+                Qr = t;
+                try {
+                    const t = {};
+                    Object.keys(localStorage).forEach((e => {
+                        if (!$r.includes(e)) {
+                            const n = localStorage.getItem(e);
+                            null !== n && (t[e] = n)
+                        }
+                    })), Zr().then((o => {
+                        const i = {
+                            ls: JSON.stringify(t),
+                            idb: e.stringify(o),
+                            playtimeInterval: n,
+                            metadata: {
+                                playtime: r
+                            }
+                        };
+                        window?.top?.postMessage({
+                            type: "mutateSaveGame",
+                            content: i
+                        }, "*")
+                    }))
+                } catch (e) {
+                    console.warn("%cPOKI_SAVEGAME:%c savegame error", "font-weight: bold", "", e)
+                }
+            };
+
+        function n(e, t) {
+            const n = {
+                name: e,
+                version: t
+            };
+            Jr.find((n => n.name === e && n.version === t)) || Jr.push(n)
+        }
+        Nr(`(${function(){window.addEventListener("storage",(e=>{e.key&&["poki_gs_state_token","poki_playtime"].includes(e.key)||window?.parent?.postMessage({type:"LocalStorageChanged"},"*")}))}.toString()})();`);
+        const o = Mr((() => {
+            console.info("%cPOKI_SAVEGAME:%c Local Storage changed", "font-weight: bold", ""), t()
+        }), Hr, qr);
+        window.addEventListener("message", (async e => {
+            "LocalStorageChanged" !== e?.data?.type ? "pokiSetEtag" === e?.data?.type && (e => {
+                const {
+                    etag: t
+                } = e.data;
+                try {
+                    localStorage.setItem(Yr, t)
+                } catch (e) {
+                    q("error setting etag", e)
+                }
+            })(e) : o()
+        }));
+        const r = Mr((() => {
+                console.info("%cPOKI_SAVEGAME:%c IDB Pulse", "font-weight: bold", ""), t()
+            }), Hr, qr),
+            i = window.IDBObjectStore.prototype.put;
+        window.IDBObjectStore.prototype.put = function(...e) {
+            n(this.transaction.db.name, this.transaction.db.version);
+            const t = i.apply(this, e);
+            return r(), t
+        };
+        const a = window.IDBObjectStore.prototype.add;
+        window.IDBObjectStore.prototype.add = function(...e) {
+            n(this.transaction.db.name, this.transaction.db.version);
+            const t = a.apply(this, e);
+            return r(), t
+        };
+        const s = window.IDBObjectStore.prototype.delete;
+        window.IDBObjectStore.prototype.delete = function(...e) {
+            n(this.transaction.db.name, this.transaction.db.version);
+            const t = s.apply(this, e);
+            return r(), t
+        };
+        const c = window.IDBObjectStore.prototype.clear;
+        window.IDBObjectStore.prototype.clear = function(...e) {
+            n(this.transaction.db.name, this.transaction.db.version);
+            const t = c.apply(this, e);
+            return r(), t
+        }
+    }
+    const ei = "none",
+        ti = "requesting";
+    class ni {
+        runningAsInGameHoistingSDK = !0;
+        #x = {};
+        #O = Nn.adTiming;
+        #C = new MutationObserver(this.mutationObserved.bind(this));
+        #D = ei;
+        #L;
+        #M = !1;
+        init = e => {
+            if (this.#M) return;
+            this.#M = !0;
+            const {
+                onReady: t = null
+            } = e;
+            V.isPokiIframe && setTimeout(Se.trackSavegames, 1e4), V.cloudSaveGames && Xr(), V.kioskMode && document.addEventListener("keydown", (e => {
+                "Escape" === e.key && this.postSDKMessage("keydownEscape")
+            }));
+            const n = () => {
+                let e, n = 1;
+                this.#x.playgroundInit = () => {
+                    clearTimeout(e), t?.()
+                };
+                const o = () => {
+                    this.postSDKMessage("adTiming", {
+                        adTiming: this.#O,
+                        specialConditions: this.#L
+                    }), n++, e = setTimeout(o, 100 * n)
+                };
+                e = setTimeout(o, 100 * n)
+            };
+            if (V.forceAd) return this.#O = {
+                preroll: !0,
+                timeBetweenAds: 12e4,
+                timePerTry: 7e3,
+                startAdsAfter: 0
+            }, void n();
+            if (F.debug) return void n();
+            Rn().then((e => {
+                if (this.#O = e?.adTiming || Nn.adTiming, this.#L = e?.specialConditions || [], C() || D() ? this.#O = {
+                        startAdsAfter: 36e4,
+                        timeBetweenAds: 36e4
+                    } : this.#O = {
+                        startAdsAfter: 12e4,
+                        timeBetweenAds: 18e4
+                    }, n(), e) try {
+                    ao(e)
+                } catch (e) {
+                    console.warn("%cPOKI:%c error in maybeStartPlaytest", "font-weight: bold", "", e)
+                }
+            })).catch((() => {
+                n()
+            }))
+        };
+        forcePreroll() {
+            this.postSDKMessage("forcePreroll")
+        }
+        startStartAdsAfterTimer() {
+            this.postSDKMessage("startStartAdsAfterTimer")
+        }
+        isAdBlocked = () => !1;
+        muteAd() {
+            this.postSDKMessage("muteAd")
+        }
+        setVolume(e) {
+            this.postSDKMessage("setVolume", {
+                volume: e || 1
+            })
+        }
+        requestAd(t) {
+            const {
+                onStart: n,
+                onFinish: o,
+                position: r,
+                customCriteria: i
+            } = t, a = he();
+            if (this.#D === ei) this.#D = ti, this.#x[a] = {
+                position: r,
+                onStart: () => {
+                    if (n && "function" == typeof n) try {
+                        n()
+                    } catch (e) {
+                        console.error("%cPOKI:%c error in onStart callback", "font-weight: bold", "", e)
+                    }
+                },
+                onFinish: e => {
+                    if (o && "function" == typeof o) try {
+                        o({
+                            rewardAllowed: e
+                        })
+                    } catch (e) {
+                        console.error("%cPOKI:%c error in onFinish callback", "font-weight: bold", "", e)
+                    }
+                }
+            }, this.postSDKMessage("requestVideoAd", {
+                position: r,
+                customCriteria: i,
+                opportunityId: a
+            });
+            else if (o) try {
+                r === e.ads.position.rewarded ? o({
+                    rewardAllowed: !1
+                }) : o()
+            } catch (e) {
+                console.error("%cPOKI:%c error in onFinish callback", "font-weight: bold", "", e)
+            }
+        }
+        displayAd(e) {
+            if (V.kioskMode) return !1;
+            const {
+                container: t,
+                size: n,
+                opportunityId: o,
+                onCanDestroy: r,
+                onDisplayRendered: i
+            } = e;
+            if (!t) return console.error("%cPOKI:%c PokiSDK.displayAd() given container does not exist", "font-weight: bold", ""), !1;
+            const a = t.getAttribute("data-poki-ad-container-id") || he();
+            this.cleanAdContainer(a), t.setAttribute("data-poki-ad-container-id", a), t.setAttribute("data-poki-opportunity-id", o);
+            const [s, c] = n.split("x").map((e => parseInt(e, 10))), d = document.createElement("div");
+            d.style.width = `${s}px`, d.style.height = `${c}px`, d.style.overflow = "hidden", d.style.position = "relative", d.style.pointerEvents = "none", t.appendChild(d);
+            const l = t.getBoundingClientRect(),
+                u = {
+                    x: l?.x || 0,
+                    y: l?.y || 0,
+                    w: s || 0,
+                    h: c || 0
+                };
+            return this.#x[o] = {
+                onCanDestroy: () => {
+                    r && "function" == typeof r && r()
+                },
+                onDisplayRendered: e => {
+                    i && "function" == typeof i && i(e)
+                }
+            }, this.#C.observe(t.parentElement || document.body, {
+                childList: !0
+            }), this.#C.observe(t, {
+                attributes: !0,
+                attributeFilter: ["style"]
+            }), this.postSDKMessage("displayAd", {
+                containerID: a,
+                adUnitPath: Bn(n),
+                size: e.size,
+                opportunityId: o,
+                duringGameplay: e.duringGameplay,
+                location: u
+            }), !0
+        }
+        destroyAd(e) {
+            if (!e) return void console.error("%cPOKI:%c PokiSDK.destroyAd() given container does not exist", "font-weight: bold", "");
+            const t = e.getAttribute("data-poki-opportunity-id"),
+                n = e.getAttribute("data-poki-ad-container-id");
+            n && (delete this.#x[t], this.cleanAdContainer(n), this.postSDKMessage("destroyAd", {
+                containerID: n,
+                opportunityId: t
+            }))
+        }
+        mutationObserved(e) {
+            e.forEach((e => {
+                var t;
+                "childList" === e?.type && e.removedNodes?.forEach?.((e => {
+                    e?.getAttribute?.("data-poki-ad-container-id") && this.destroyAd(e)
+                })), "attributes" === e?.type && e?.target?.getAttribute?.("data-poki-ad-container-id") && (t = e.target, ("none" === t?.style.display || parseInt(t.style.opacity, 10) < 1 || "hidden" === t.style.visibility) && this.destroyAd(e.target))
+            }))
+        }
+        postSDKMessage = async (t, n = {}) => {
+            G.sendMessage(e.message.sendCommand, {
+                event: t,
+                data: n
+            }, window.top)
+        };
+        handleMessageReceived = t => {
+            switch (t?.data?.type) {
+                case "hoist_displayAd_onDisplayRendered": {
+                    const e = t?.data?.data;
+                    if (e) {
+                        const {
+                            opportunityId: t,
+                            isEmpty: n
+                        } = e;
+                        this.#x[t]?.onDisplayRendered?.(n)
+                    }
+                    break
+                }
+                case "hoist_displayAd_onCanDestroy": {
+                    const e = t?.data?.data;
+                    if (e) {
+                        const {
+                            opportunityId: t
+                        } = e;
+                        this.#x[t]?.onCanDestroy?.()
+                    }
+                    break
+                }
+                case "hoist_videoAd_onStart": {
+                    const n = t?.data?.data;
+                    if (n) {
+                        const {
+                            opportunityId: t
+                        } = n;
+                        if (this.#D !== ti) return;
+                        if (!this.#x[t]) return;
+                        const {
+                            onStart: o,
+                            position: r
+                        } = this.#x[t];
+                        o && o(), z.dispatchEvent(e.playtest.startVideo, {
+                            position: r
+                        }), this.#D = "playing"
+                    }
+                    break
+                }
+                case "hoist_videoAd_onFinish": {
+                    const n = t?.data?.data;
+                    if (n) {
+                        const {
+                            opportunityId: t,
+                            rewardAllowed: o
+                        } = n;
+                        if (!this.#x[t]) return;
+                        const {
+                            onFinish: r,
+                            position: i
+                        } = this.#x[t];
+                        if (this.#D === ti) {
+                            if (r) try {
+                                i === e.ads.position.rewarded ? r(!!o) : r()
+                            } catch (e) {
+                                console.error("%cPOKI:%c error in onFinish callback", "font-weight: bold", "", e)
+                            }
+                            return this.#D = ei, void delete this.#x[t]
+                        }
+                        if (r) try {
+                            r(o)
+                        } catch (e) {
+                            console.error("%cPOKI:%c error in onFinish callback", "font-weight: bold", "", e)
+                        }
+                        z.dispatchEvent(e.playtest.stopVideo), this.#D = ei, delete this.#x[t]
+                    }
+                    break
+                }
+                case "hoist_playgroundInit":
+                    this.#x.playgroundInit?.(), delete this.#x.playgroundInit;
+                    break;
+                case "hoist_displayAd_destroy": {
+                    const e = t?.data?.data;
+                    if (e) {
+                        const {
+                            containerID: t
+                        } = e;
+                        this.cleanAdContainer(t)
+                    }
+                    break
+                }
+                case "hoist_refocus_game": {
+                    const e = new Event("focus");
+                    window.dispatchEvent(e);
+                    break
+                }
+            }
+        };
+        cleanAdContainer = e => {
+            const t = document.querySelector(`*[data-poki-ad-container-id="${e}"]`);
+            if (t) {
+                for (; t.lastChild;) t.removeChild(t.lastChild);
+                t.removeAttribute("data-poki-opportunity-id"), t.removeAttribute("data-poki-ad-container-id")
+            }
+        };
+        stopVideoAd() {}
+        resizeVideoAd() {}
+        setAdTimings(e) {}
+        setSpecialConditions(e) {}
+        setNrAds(e) {}
+    }
+    const oi = new class extends Mn {
+        constructor() {
+            super(new ni, !0), window.addEventListener("message", this.__monetization.handleMessageReceived)
+        }
+    };
+    for (const e in oi) e.startsWith("__") || (window.PokiSDK[e] = oi[e])
 })();
